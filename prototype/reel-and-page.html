@@ -1,0 +1,500 @@
+<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Reel &amp; Page</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,500;0,6..96,700;1,6..96,500&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;1,7..72,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a phone app — scrolling screen, mini player docked above a five-tab bar; on wide screens the phone sits centered on a velvet backdrop. */
+:root{
+  --stage:#e9e3e4; --paper:#f7f3f1; --card:#fffdfb; --ink:#241a1f; --muted:#6f6268; --line:#e4dbd8;
+  --accent:#8a1f2d; --accent-ink:#fffaf6; --brass:#a5762a; --soft:#f2e6e4; --ok:#2f6b47;
+  --display:"Bodoni Moda",Didot,"Times New Roman",serif;
+  --body:"Literata",Georgia,serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --stage:#0f0b10; --paper:#17121a; --card:#221a25; --ink:#efe6e4; --muted:#a8999f; --line:#392e3a;
+  --accent:#de5d71; --accent-ink:#1a0f13; --brass:#d8a85c; --soft:#2f222a; --ok:#7cc59a; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --stage:#0f0b10; --paper:#17121a; --card:#221a25; --ink:#efe6e4; --muted:#a8999f; --line:#392e3a;
+  --accent:#de5d71; --accent-ink:#1a0f13; --brass:#d8a85c; --soft:#2f222a; --ok:#7cc59a; color-scheme:dark}
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--stage);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.5;display:flex;justify-content:center}
+button,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
+.mono{font-family:var(--mono);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase}
+.display{font-family:var(--display)}
+.muted{color:var(--muted)}
+
+.app{width:100%;max-width:430px;height:100%;background:var(--paper);display:flex;flex-direction:column;position:relative;overflow:hidden}
+@media (min-width:640px){body{align-items:center;padding-block:20px}.app{height:min(900px,100%);border-radius:28px;border:1px solid var(--line);box-shadow:0 30px 80px rgba(20,8,14,.25)}}
+
+.screen{flex:1;overflow-y:auto;padding-left:max(18px,env(safe-area-inset-left,0px));padding-right:max(18px,env(safe-area-inset-right,0px));padding-block:18px 24px}
+.topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;gap:10px}
+.brand{font-family:var(--display);font-weight:700;font-size:1.45rem;line-height:1}
+.brand i{color:var(--accent);font-weight:500}
+.back{background:none;border:1px solid var(--line);border-radius:999px;padding:4px 12px;color:var(--muted)}
+h2.title{font-family:var(--display);font-weight:500;font-size:1.9rem;line-height:1.08;margin:0 0 4px;text-wrap:balance}
+h3.sec{font-family:var(--display);font-weight:500;font-size:1.25rem;margin:24px 0 10px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.btn{background:var(--accent);color:var(--accent-ink);border:0;border-radius:999px;padding:10px 18px;font-weight:600}
+.btn.ghost{background:none;color:var(--ink);border:1px solid var(--line)}
+.btn.small{padding:6px 12px;font-size:.85rem}
+.chip{border:1px solid var(--line);background:none;border-radius:999px;padding:5px 12px;color:var(--muted);font-size:.88rem}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.tag{font-family:var(--mono);font-size:.64rem;letter-spacing:.08em;text-transform:uppercase;padding:2px 7px;border-radius:4px;border:1px solid var(--line);color:var(--muted)}
+.tag.free{color:var(--ok);border-color:var(--ok)}
+.tag.own{background:var(--ok);color:var(--paper);border-color:var(--ok)}
+
+/* club hero: ticket */
+.feature{background:var(--accent);color:var(--accent-ink);border-radius:14px;padding:18px;display:grid;gap:8px;text-align:left;border:0;width:100%;position:relative}
+.feature .mono{opacity:.85}
+.feature h4{font-family:var(--display);font-weight:500;font-size:1.7rem;margin:0;line-height:1.05}
+.feature .perf{border-top:1px dashed currentColor;opacity:.5;margin:4px 0}
+
+/* rails */
+.rail{display:flex;gap:12px;overflow-x:auto;padding-bottom:6px;scroll-snap-type:x mandatory}
+.cover{flex:0 0 132px;scroll-snap-align:start;background:none;border:0;padding:0;text-align:left;display:grid;gap:6px}
+.poster{aspect-ratio:2/3;max-width:100%;border-radius:8px;padding:10px;display:flex;flex-direction:column;justify-content:space-between;color:#fff8f2;position:relative;overflow:hidden}
+.poster b{font-family:var(--display);font-weight:500;font-size:1.05rem;line-height:1.08}
+.poster .mono{font-size:.58rem;opacity:.85}
+.cover .cap{font-size:.82rem;line-height:1.25}
+
+/* list rows */
+.list{display:grid;gap:2px}
+.item{display:grid;grid-template-columns:52px 1fr auto;gap:12px;align-items:center;background:none;border:0;border-bottom:1px solid var(--line);padding:10px 0;text-align:left;width:100%}
+.item .poster{aspect-ratio:2/3;padding:4px;border-radius:5px}
+.item .poster b{font-size:.5rem}
+.item .meta{min-width:0}
+.item .meta b{display:block;font-family:var(--display);font-size:1.05rem;font-weight:500;line-height:1.15}
+.item .meta span{font-size:.82rem;color:var(--muted)}
+
+.search{width:100%;border:1px solid var(--line);background:var(--card);border-radius:999px;padding:9px 14px;margin-bottom:10px}
+
+/* detail */
+.hero-poster{width:150px;margin:0 auto 14px}
+.hero-poster .poster b{font-size:1.25rem}
+.center{text-align:center}
+.parts{display:grid;gap:8px;margin-top:10px}
+.part{display:grid;grid-template-columns:30px 1fr auto;gap:10px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px;text-align:left;width:100%}
+.part .n{font-family:var(--mono);color:var(--brass);font-size:.8rem}
+.part[disabled]{opacity:.55;cursor:default}
+.buybox{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;display:grid;gap:10px;margin-top:16px}
+.price{font-family:var(--mono);font-weight:500}
+
+/* mini player */
+.mini{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;background:var(--card);border-top:1px solid var(--line);padding:8px max(14px,env(safe-area-inset-right,0px)) 8px max(14px,env(safe-area-inset-left,0px));position:relative}
+.mini .bar{position:absolute;left:0;top:-1px;height:2px;background:var(--accent)}
+.mini button.open{background:none;border:0;text-align:left;min-width:0;padding:0}
+.mini b{display:block;font-family:var(--display);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mini span{font-size:.78rem;color:var(--muted)}
+.ibtn{background:none;border:1px solid var(--line);border-radius:999px;width:38px;height:38px;display:grid;place-items:center;font-size:.9rem}
+.ibtn.main{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+
+/* tabs */
+.tabs{display:grid;grid-template-columns:repeat(5,1fr);border-top:1px solid var(--line);background:var(--card);padding:6px max(6px,env(safe-area-inset-right,0px)) max(8px,env(safe-area-inset-bottom,0px)) max(6px,env(safe-area-inset-left,0px))}
+.tabs button{background:none;border:0;display:grid;justify-items:center;gap:2px;font-size:.7rem;color:var(--muted);padding:4px 0}
+.tabs svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.6}
+.tabs button[aria-current="page"]{color:var(--accent)}
+
+/* pen FAB */
+.pen{position:absolute;right:max(16px,env(safe-area-inset-right,0px));z-index:15;width:46px;height:46px;border-radius:50%;background:var(--brass);color:var(--paper);border:0;display:grid;place-items:center;box-shadow:0 6px 18px rgba(0,0,0,.2)}
+.pen svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8}
+
+/* full player */
+.overlay{position:absolute;inset:0;background:var(--paper);z-index:10;display:flex;flex-direction:column}
+.player{flex:1;overflow-y:auto;padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px));padding-block:16px 30px}
+.player .poster{width:120px;margin:10px auto 14px}
+.scrub{width:100%;accent-color:var(--accent)}
+.times{display:flex;justify-content:space-between;font-family:var(--mono);font-size:.72rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.controls{display:flex;justify-content:center;align-items:center;gap:18px;margin:14px 0}
+.controls .ibtn{width:48px;height:48px;font-family:var(--mono);font-size:.75rem}
+.controls .ibtn.main{width:66px;height:66px;font-size:1.3rem}
+.opts{display:flex;justify-content:center;gap:8px;flex-wrap:wrap}
+.preview-note{background:var(--soft);border-radius:10px;padding:10px 12px;font-size:.85rem;margin-top:12px;text-align:center}
+.transcript{margin-top:20px;display:grid;gap:12px}
+.transcript p{margin:0;color:var(--muted);transition:color .3s}
+.transcript p.on{color:var(--ink)}
+
+/* club */
+.segtabs{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--line);border-radius:999px;overflow:hidden;margin:16px 0 12px}
+.segtabs button{background:none;border:0;padding:7px;color:var(--muted)}
+.segtabs button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.pinned{background:var(--soft);border-radius:10px;padding:10px 12px;font-size:.88rem}
+.msgs{display:grid;gap:10px;margin:12px 0}
+.msg{max-width:85%;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 11px;font-size:.9rem}
+.msg.me{justify-self:end;background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.msg .who{font-family:var(--mono);font-size:.62rem;letter-spacing:.06em;text-transform:uppercase;color:var(--brass);display:block;margin-bottom:2px}
+.msg.host .who{color:var(--accent)}
+.msg .who{display:flex;justify-content:space-between;gap:8px;align-items:center}
+.more{background:none;border:0;color:var(--muted);padding:0 2px;font-size:.9rem;line-height:1}
+.compose{display:flex;gap:8px}
+.compose input,.compose textarea{flex:1;min-width:0;border:1px solid var(--line);background:var(--card);border-radius:999px;padding:9px 14px}
+.compose textarea{border-radius:12px;min-height:70px;resize:vertical}
+.qa{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;display:grid;gap:6px}
+.qa .a{border-left:2px solid var(--accent);padding-left:10px;font-size:.92rem}
+
+/* quotes */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:6px 0 14px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px}
+.stat b{display:block;font-family:var(--display);font-size:1.6rem;font-variant-numeric:tabular-nums;line-height:1.1}
+.stat span{font-size:.72rem;color:var(--muted)}
+.quote{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;display:grid;gap:6px}
+.quote p{margin:0;font-style:italic}
+.quote p::before{content:"“";font-family:var(--display);font-size:1.6em;color:var(--accent);line-height:0;vertical-align:-.35em;margin-right:2px}
+.switch{display:flex;justify-content:space-between;gap:12px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px}
+.switch input{width:20px;height:20px;accent-color:var(--accent);flex:none}
+.reflect{background:var(--soft);border-radius:12px;padding:12px;font-size:.9rem;display:grid;gap:4px}
+
+/* sheet */
+.sheet-wrap{position:absolute;inset:0;background:rgba(15,8,12,.5);z-index:20;display:flex;align-items:flex-end}
+.sheet{background:var(--card);width:100%;border-radius:18px 18px 0 0;padding:20px max(20px,env(safe-area-inset-right,0px)) max(24px,env(safe-area-inset-bottom,0px)) max(20px,env(safe-area-inset-left,0px));display:grid;gap:12px}
+.sheet h3{font-family:var(--display);font-weight:500;font-size:1.5rem;margin:0}
+.line{display:flex;justify-content:space-between;gap:10px;font-variant-numeric:tabular-nums}
+.demo{background:var(--soft);border-radius:8px;padding:9px 11px;font-size:.8rem;color:var(--muted)}
+.toast{position:absolute;left:50%;bottom:150px;transform:translateX(-50%);background:var(--ink);color:var(--paper);padding:9px 16px;border-radius:999px;z-index:30;font-size:.88rem;white-space:nowrap;max-width:90%;overflow:hidden;text-overflow:ellipsis}
+.empty{border:1px dashed var(--line);border-radius:12px;padding:20px;text-align:center;color:var(--muted);font-size:.9rem}
+.setting{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid var(--line)}
+@media (prefers-reduced-motion:reduce){.transcript p{transition:none}}
+</style>
+
+<div class="app" id="app">
+  <main class="screen" id="screen"></main>
+  <button class="pen" id="pen" aria-label="Save a quote from what's playing" title="Save quote"><svg viewBox="0 0 24 24"><path d="M4 20l4-1 11-11-3-3L5 16l-1 4z"/><path d="M14 6l3 3"/></svg></button>
+  <div class="mini" id="mini" hidden></div>
+  <nav class="tabs" id="tabs" aria-label="Main">
+    <button data-tab="home"><svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z"/></svg>Home</button>
+    <button data-tab="catalog"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg>Catalog</button>
+    <button data-tab="club"><svg viewBox="0 0 24 24"><path d="M4 7h16v4a2 2 0 000 4v4H4v-4a2 2 0 000-4z"/></svg>Club</button>
+    <button data-tab="quotes"><svg viewBox="0 0 24 24"><path d="M6 8h4v4c0 3-2 4-4 4M14 8h4v4c0 3-2 4-4 4"/></svg>Quotes</button>
+    <button data-tab="profile"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/></svg>Profile</button>
+  </nav>
+  <div class="overlay" id="player" hidden></div>
+  <div class="sheet-wrap" id="sheet" hidden><div class="sheet" id="sheetBody" role="dialog" aria-modal="true"></div></div>
+  <div class="toast" id="toast" hidden></div>
+</div>
+
+<script>
+const HOST="Kanan";
+const ITEMS=[
+ {id:"casablanca",type:"film",title:"Casablanca",by:"Michael Curtiz",year:1942,genre:"Drama",price:4.99,c1:"#6b1d2a",c2:"#2a1018",
+  blurb:"October's club film. Four episodes on how a rushed studio picture, shot without a settled ending, became the most quoted romance in Hollywood.",
+  parts:[
+   {t:"A café full of exiles",d:720,x:["Start with the crowd. Nearly every bit player at Rick's was a real European exile, and their faces give the café a weight no set designer could fake.","When the room sings 'La Marseillaise' over the German officers, the tears on screen are not acted. That scene tells you what the film is really about before the romance even begins.","Notice how the camera moves through Rick's like a guest looking for a table. We learn the rules of this place by walking through it."]},
+   {t:"Rick's performance",d:780,x:["Bogart plays Rick as a man performing indifference, and the film lets us watch the performance crack.","The famous line about sticking his neck out for nobody is a pose. Watch his hands and his drinking in the flashback scenes and you see what the pose is protecting.","Ask yourself where you have built a Rick of your own: a role that keeps people at a distance because someone once left you on a railway platform."]},
+   {t:"Ilsa's impossible choice",d:840,x:["Bergman famously did not know which man Ilsa would choose. She plays both possibilities at once, which is why her scenes still feel alive.","Ilsa is often read as passive. Look again: every major turn in the plot happens because she walks into a room and refuses to leave it unchanged."]},
+   {t:"The ending nobody planned",d:900,x:["The writers were still arguing on the last days of the shoot. The ending they found turns a love story into a story about duty.","Rick does not lose Ilsa at the airport. He chooses something larger than both of them, and the film lets him be happy about it."]}
+  ]},
+ {id:"metropolis",type:"film",title:"Metropolis",by:"Fritz Lang",year:1927,genre:"Science fiction",price:4.99,c1:"#3d3a52",c2:"#15131f",
+  blurb:"The city of towers that every dystopia since has borrowed from, and why its spectacle still outruns its sentimental plot.",
+  parts:[
+   {t:"Head, hands and heart",d:660,x:["The story of a mediator between the thinkers and the workers is almost naive. The architecture is not.","Every frame is composed like a cathedral elevation, and the crowds move as geometry before they move as people."]},
+   {t:"Two Marias",d:720,x:["Brigitte Helm's double performance carries the second half. As the gentle Maria she is all stillness.","As the machine-made double she jerks and leers in ways no actor of the period would have dared."]},
+   {t:"The flood",d:600,x:["Children climbing toward a single raised arm: one of the great set pieces of silent cinema.","Watch the 2010 restoration, which recovers most of the lost footage and makes the ending feel earned."]}
+  ]},
+ {id:"nosferatu",type:"film",title:"Nosferatu",by:"F. W. Murnau",year:1922,genre:"Horror",price:0,c1:"#2f3b2c",c2:"#0f1410",
+  blurb:"Free to start. Why a vampire filmed on real streets in real daylight still frightens a century later.",
+  parts:[
+   {t:"A plague with a face",d:600,x:["Murnau shot his vampire on real streets, and that is why Count Orlok still frightens: he belongs to the world we live in.","Orlok is less a seducer than a plague. He enters rooms through shadows before he enters them in body."]},
+   {t:"Fever-dream logic",d:540,x:["The drama is thin and the intertitles hurry. But the carnivorous plants and the ship of coffins give the film a dream logic a tidier script would have lost."]}
+  ]},
+ {id:"the-general",type:"film",title:"The General",by:"Buster Keaton",year:1926,genre:"Comedy",price:4.99,c1:"#8a5a1c",c2:"#2b1b08",
+  blurb:"A comedy built like a palindrome, and the stuntman's precision behind the deadpan.",
+  parts:[
+   {t:"A chase in a mirror",d:600,x:["The film runs a chase north, then a chase south, and each gag in the first half is answered by its mirror in the second.","Once you notice the structure, the film becomes even funnier."]},
+   {t:"The stone face",d:540,x:["Keaton never asks for sympathy. Johnnie Gray is stubborn, resourceful and serene, even while sitting on the drive rod of a moving engine."]}
+  ]},
+ {id:"sherlock-jr",type:"film",title:"Sherlock Jr.",by:"Buster Keaton",year:1924,genre:"Comedy",price:3.99,c1:"#4f2a46",c2:"#1b0d18",
+  blurb:"A projectionist walks into the movie he is showing, and invents a joke about cinema that filmmakers still borrow.",
+  parts:[
+   {t:"Walking into the screen",d:600,x:["The edits change the world around Keaton, from garden to street to cliff to lion's den: film grammar turned into slapstick.","It was achieved with surveyor's tools and exact measurements, and it still looks seamless."]}
+  ]},
+ {id:"tell-tale",type:"story",title:"The Tell-Tale Heart",by:"Edgar Allan Poe",year:1843,genre:"Gothic",price:0,c1:"#5a1a1a",c2:"#1a0707",
+  blurb:"Free to start. The shortest perfect unreliable narrator in English, and what his panting rhythm does to the reader's pulse.",
+  parts:[
+   {t:"I am not mad",d:480,x:["The narrator insists he is sane, and every sentence he writes proves otherwise.","Poe writes in short, panting clauses so the reader's pulse speeds up with the narrator's."]},
+   {t:"Under the floorboards",d:420,x:["By the time the beating begins, we hear it too. Read the ending aloud; the story was built for performance."]}
+  ]},
+ {id:"yellow-wallpaper",type:"story",title:"The Yellow Wallpaper",by:"Charlotte Perkins Gilman",year:1892,genre:"Psychological",price:2.99,c1:"#8c7a2c",c2:"#2d2709",
+  blurb:"A secret journal by a woman forbidden to write, and the pattern on the wall that slowly becomes bars.",
+  parts:[
+   {t:"The forbidden journal",d:540,x:["Every entry is an act of rebellion we are reading over her shoulder."]},
+   {t:"The pattern",d:600,x:["The wallpaper reorganizes itself into bars and a figure behind them. Gilman never tells us what is real."]},
+   {t:"The kind husband",d:480,x:["The husband is not a villain. He is kind, confident and catastrophically wrong, which is the hardest kind of person to resist."]}
+  ]},
+ {id:"gift-magi",type:"story",title:"The Gift of the Magi",by:"O. Henry",year:1905,genre:"Literary",price:2.99,c1:"#2c4a5a",c2:"#0b1820",
+  blurb:"Everyone remembers the twist. This episode is about the money, the jokes, and why the sacrifice has weight.",
+  parts:[
+   {t:"One dollar and eighty-seven cents",d:540,x:["O. Henry tells us exactly what the flat costs and what the hair sells for, so the sacrifice has weight. The irony is cheap only if you skip the arithmetic.","It is a Christmas story that admits poverty is exhausting."]}
+  ]}
+];
+const BUNDLES=[
+ {id:"b-silent",title:"Silent Masters",ids:["metropolis","nosferatu","the-general","sherlock-jr"],price:11.99,c1:"#3d3a52",c2:"#15131f"},
+ {id:"b-dark",title:"Dark Tales",ids:["tell-tale","yellow-wallpaper"],price:4.99,c1:"#5a1a1a",c2:"#1a0707"}
+];
+const CLUB={id:"casablanca",month:"October 2026",price:9.99,release:["2026-10-05","2026-10-12","2026-10-19","2026-10-26"]};
+const PREVIEW=300;
+
+const S={get(k,d){try{const v=localStorage.getItem("rp2_"+k);return v===null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem("rp2_"+k,JSON.stringify(v))}catch(e){}}};
+let st={
+  owned:new Set(S.get("owned",[])), member:S.get("member",false),
+  quotes:S.get("quotes",[
+    {text:"Rick does not lose Ilsa at the airport. He chooses something larger than both of them.",src:"Casablanca · The ending nobody planned",at:"2026-10-20",sample:true},
+    {text:"The irony is cheap only if you skip the arithmetic.",src:"The Gift of the Magi",at:"2026-10-18",sample:true}]),
+  pos:S.get("pos",{}), chat:S.get("chat",[]), qs:S.get("qs",[]), secs:S.get("secs",4320), days:S.get("days",["2026-10-21","2026-10-22","2026-10-23"]), ai:S.get("ai",false), blocked:S.get("blocked",[])
+};
+const save=()=>{S.set("owned",[...st.owned]);S.set("member",st.member);S.set("quotes",st.quotes);S.set("pos",st.pos);S.set("chat",st.chat);S.set("qs",st.qs);S.set("secs",st.secs);S.set("days",st.days);S.set("ai",st.ai);S.set("blocked",st.blocked)};
+
+let ui={tab:"home",detail:null,filter:"all",q:"",clubTab:"chat"};
+let pl={id:null,part:0,t:0,playing:false,speed:1,sleep:0,sleepLeft:0};
+
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const money=n=>"$"+n.toFixed(2);
+const mmss=s=>{s=Math.max(0,Math.floor(s));return Math.floor(s/60)+":"+String(s%60).padStart(2,"0")};
+const mins=s=>Math.round(s/60)+" min";
+const item=id=>ITEMS.find(i=>i.id===id);
+const today=()=>new Date().toISOString().slice(0,10);
+const total=i=>i.parts.reduce((a,p)=>a+p.d,0);
+const hasAccess=i=>i.price===0||st.owned.has(i.id)||(st.member&&i.id===CLUB.id);
+const partOpen=(i,k)=>!(st.member&&i.id===CLUB.id&&!st.owned.has(i.id))||new Date(CLUB.release[k]+"T09:00:00")<=new Date();
+const poster=(i,big)=>`<div class="poster" style="background:linear-gradient(160deg,${i.c1},${i.c2})"><span class="mono">${i.type==="film"?"Film":"Story"} · ${i.year||""}</span><b>${esc(i.title)}</b></div>`;
+function tagFor(i){if(st.owned.has(i.id))return'<span class="tag own">Owned</span>';if(i.price===0)return'<span class="tag free">Free</span>';if(st.member&&i.id===CLUB.id)return'<span class="tag own">Club</span>';return`<span class="price">${money(i.price)}</span>`}
+
+/* ---------- screens ---------- */
+function home(){
+  const c=item(CLUB.id), cont=Object.keys(st.pos).filter(id=>item(id)&&st.pos[id].t>0).map(item);
+  return `<div class="topbar"><div class="brand">Reel <i>&amp;</i> Page</div><span class="mono muted">Audio criticism</span></div>
+  <button class="feature" data-tab="club"><span class="mono">The club · ${CLUB.month}</span><h4>${c.title}</h4><span style="font-size:.9rem">${esc(c.blurb)}</span><div class="perf"></div><span class="mono">${st.member?"Open this month's episodes →":"Join for "+money(CLUB.price)+"/month →"}</span></button>
+  ${cont.length?`<h3 class="sec">Continue listening</h3><div class="list">${cont.map(row).join("")}</div>`:""}
+  <h3 class="sec">Free to start</h3><div class="rail">${ITEMS.filter(i=>i.price===0).map(cover).join("")}</div>
+  <h3 class="sec">Collections</h3><div class="rail">${BUNDLES.map(b=>`<button class="cover" data-bundle="${b.id}">${poster({...b,type:"film",year:b.ids.length+" episodes"}).replace("Film · ","")}<span class="cap">${esc(b.title)}<br><span class="price">${money(b.price)}</span></span></button>`).join("")}</div>
+  <h3 class="sec">Recently added</h3><div class="rail">${ITEMS.filter(i=>i.price>0).map(cover).join("")}</div>`;
+}
+const cover=i=>`<button class="cover" data-item="${i.id}">${poster(i)}<span class="cap">${esc(i.by)}<br>${tagFor(i)}</span></button>`;
+const row=i=>`<button class="item" data-item="${i.id}">${poster(i)}<div class="meta"><b>${esc(i.title)}</b><span>${esc(i.by)} · ${i.parts.length} ${i.parts.length>1?"episodes":"episode"} · ${mins(total(i))}</span></div>${tagFor(i)}</button>`;
+
+function catalog(){
+  const q=ui.q.toLowerCase();
+  const list=ITEMS.filter(i=>(ui.filter==="all"||(ui.filter==="free"?i.price===0:i.type===ui.filter))&&(!q||(i.title+i.by+i.genre).toLowerCase().includes(q)));
+  return `<h2 class="title">Catalog</h2><p class="muted" style="margin:0 0 14px">Browse freely. Paid episodes play a 5-minute preview.</p>
+  <input class="search" id="q" type="search" placeholder="Search films, stories, directors" value="${esc(ui.q)}" aria-label="Search">
+  <div class="row" style="margin-bottom:8px">${[["all","All"],["film","Films"],["story","Stories"],["free","Free"]].map(([k,l])=>`<button class="chip" data-filter="${k}" aria-pressed="${ui.filter===k}">${l}</button>`).join("")}</div>
+  <div class="list">${list.length?list.map(row).join(""):'<div class="empty">Nothing matches that search. Try a director or author name.</div>'}</div>
+  <h3 class="sec">Collections</h3><div class="list">${BUNDLES.map(b=>`<button class="item" data-bundle="${b.id}">${poster({...b,type:"film",year:""})}<div class="meta"><b>${esc(b.title)}</b><span>${b.ids.map(id=>item(id).title).join(", ")}</span></div><span class="price">${money(b.price)}</span></button>`).join("")}</div>`;
+}
+
+function detail(id){
+  const i=item(id), acc=hasAccess(i), isClub=i.id===CLUB.id;
+  const bundle=BUNDLES.find(b=>b.ids.includes(i.id));
+  return `<div class="topbar"><button class="back" data-back>← Back</button><span class="mono muted">${esc(i.genre)}</span></div>
+  <div class="hero-poster">${poster(i)}</div>
+  <div class="center"><h2 class="title">${esc(i.title)}</h2><div class="muted">${i.type==="film"?"Directed by":"By"} ${esc(i.by)} · ${i.year}</div></div>
+  <p style="margin:14px 0">${esc(i.blurb)}</p>
+  <div class="row"><button class="btn" data-play="${i.id}" data-part="0">${acc?(st.pos[i.id]?"Resume":"Play"):"Play 5-min preview"}</button><span class="muted" style="font-size:.85rem">${i.parts.length} ${i.parts.length>1?"episodes":"episode"} · ${mins(total(i))} · commentary by ${HOST}</span></div>
+  <div class="parts">${i.parts.map((p,k)=>{const open=acc&&partOpen(i,k);const label=!acc?(k===0?"Preview":"Locked"):open?mins(p.d):"Opens "+new Date(CLUB.release[k]+"T12:00").toLocaleDateString("en-US",{month:"short",day:"numeric"});
+    return `<button class="part" data-play="${i.id}" data-part="${k}" ${(acc&&!open)||(!acc&&k>0)?"disabled":""}><span class="n">${String(k+1).padStart(2,"0")}</span><span>${esc(p.t)}</span><span class="mono muted">${label}</span></button>`}).join("")}</div>
+  ${acc?"":`<div class="buybox"><div class="line"><span>Own this commentary for good</span><span class="price">${money(i.price)}</span></div>
+    <button class="btn" data-buy="${i.id}">Buy for ${money(i.price)}</button>
+    ${bundle?`<button class="btn ghost" data-bundle="${bundle.id}">Part of ${esc(bundle.title)} · ${bundle.ids.length} episodes for ${money(bundle.price)}</button>`:""}
+    ${isClub?`<button class="btn ghost" data-tab="club">Included with the club · ${money(CLUB.price)}/month</button>`:""}</div>`}`;
+}
+
+function bundleView(id){
+  const b=BUNDLES.find(x=>x.id===id), sum=b.ids.reduce((a,x)=>a+item(x).price,0), all=b.ids.every(x=>hasAccess(item(x)));
+  return `<div class="topbar"><button class="back" data-back>← Back</button><span class="mono muted">Collection</span></div>
+  <h2 class="title">${esc(b.title)}</h2><p class="muted" style="margin:0 0 12px">${b.ids.length} commentaries, yours to keep.</p>
+  <div class="list">${b.ids.map(x=>row(item(x))).join("")}</div>
+  <div class="buybox">${all?'<span class="tag own" style="justify-self:start">You own everything here</span>':`<div class="line"><span class="muted">Bought one by one</span><span class="price muted"><s>${money(sum)}</s></span></div>
+  <div class="line"><span>Collection price</span><span class="price">${money(b.price)}</span></div><button class="btn" data-buy="${b.id}">Buy collection</button>`}</div>`;
+}
+
+function club(){
+  const c=item(CLUB.id);
+  if(!st.member) return `<h2 class="title">The club</h2><p class="muted" style="margin:0 0 16px">One film each month, discussed together.</p>
+   <button class="feature" data-item="${c.id}"><span class="mono">${CLUB.month}</span><h4>${c.title}</h4><span style="font-size:.9rem">${c.parts.length} episodes released weekly · live chat with members · ask ${HOST} your questions</span></button>
+   <div class="buybox"><div class="line"><span>Club membership</span><span class="price">${money(CLUB.price)}/month</span></div>
+   <span class="muted" style="font-size:.88rem">Every month you pay for stays yours, including its episodes and chat. Cancel anytime.</span>
+   <button class="btn" data-buy="club">Join the club</button></div>`;
+  const chat=[{who:HOST,host:1,t:"Welcome to October! Episode 3 is out. Before you listen, rewatch the flashback in Paris and notice what Rick does with his hands."},
+    {who:"Dana",t:"Just finished episode 2. I never saw Rick's coldness as a role before. Now I can't unsee it."},
+    {who:"Marcus",t:"The 'Marseillaise' scene got me again. Did they really cast actual refugees?"},
+    {who:HOST,host:1,t:"Marcus, yes. Many of the extras and supporting actors had fled Europe. I talk about it at the start of episode 1."},...st.chat];
+  const qa=[{q:"Why do you think Ilsa never says which man she loves?",who:"Priya",a:"Because the script didn't know either. Bergman played both answers at once, and the film is better for the uncertainty. More on this in episode 3."},...st.qs];
+  return `<div class="topbar"><h2 class="title" style="margin:0">The club</h2><span class="tag own">Member</span></div>
+  <button class="feature" data-item="${c.id}"><span class="mono">${CLUB.month}</span><h4>${c.title}</h4><span class="mono">${CLUB.release.filter(d=>new Date(d+"T09:00")<=new Date()).length} of ${c.parts.length} episodes out →</span></button>
+  <div class="segtabs"><button data-clubtab="chat" aria-pressed="${ui.clubTab==="chat"}">Chat</button><button data-clubtab="qa" aria-pressed="${ui.clubTab==="qa"}">Ask ${HOST}</button></div>
+  ${ui.clubTab==="chat"?`<div class="pinned"><span class="mono" style="color:var(--accent)">Pinned · ${HOST}</span><br>Please no spoilers for episodes that haven't been released yet. Discuss the ending after Oct 26.</div>
+   <div class="msgs">${chat.filter(m=>!st.blocked.includes(m.who)).map(m=>`<div class="msg ${m.me?"me":""} ${m.host?"host":""}">${m.me?"":`<span class="who">${esc(m.who)}${m.host?" · host":""}${!m.me&&!m.host?`<button class="more" data-member="${esc(m.who)}" aria-label="Report or block ${esc(m.who)}">···</button>`:""}</span>`}${esc(m.t)}</div>`).join("")}${st.blocked.length?`<span class="mono muted" style="justify-self:center">${st.blocked.length} blocked member${st.blocked.length>1?"s":""} hidden</span>`:""}</div>
+   <form class="compose" id="chatForm"><input id="chatIn" placeholder="Message the club" aria-label="Message" autocomplete="off"><button class="btn small">Send</button></form>`
+  :`<form class="compose" id="qForm" style="flex-direction:column"><textarea id="qIn" placeholder="Ask ${HOST} about the film or the episodes" aria-label="Question"></textarea><button class="btn small" style="align-self:flex-end">Send question</button></form>
+   <div style="display:grid;gap:10px;margin-top:14px">${qa.slice().reverse().map(x=>`<div class="qa"><span class="mono muted">${esc(x.who)} asked</span><b style="font-weight:600">${esc(x.q)}</b>${x.a?`<div class="a"><span class="mono" style="color:var(--accent)">${HOST} answered</span><br>${esc(x.a)}</div>`:`<span class="mono" style="color:var(--brass)">Waiting for ${HOST}'s answer</span>`}</div>`).join("")}</div>`}`;
+}
+
+function streak(){let n=0,d=new Date();const set=new Set(st.days);for(;;){const k=d.toISOString().slice(0,10);if(set.has(k)){n++;d.setDate(d.getDate()-1)}else if(n===0&&k===today()){d.setDate(d.getDate()-1)}else break}return n}
+function theme(){const words={"choice":"choices","chooses":"choices","duty":"duty","love":"love","money":"money","arithmetic":"money","sane":"self-deception","pose":"self-deception","role":"self-deception","real":"what's real"};const c={};st.quotes.forEach(q=>Object.keys(words).forEach(w=>{if(q.text.toLowerCase().includes(w))c[words[w]]=(c[words[w]]||0)+1}));const top=Object.entries(c).sort((a,b)=>b[1]-a[1])[0];return top?top[0]:"first impressions"}
+function quotes(){
+  return `<h2 class="title">Quotes</h2><p class="muted" style="margin:0 0 12px">Tap the pen while listening to save the line you're hearing.</p>
+  <div class="stats"><div class="stat"><b>${st.quotes.length}</b><span>quotes saved</span></div><div class="stat"><b>${streak()}</b><span>days in a row</span></div><div class="stat"><b>${Math.round(st.secs/60)}</b><span>minutes listened</span></div></div>
+  <label class="switch" for="aiTog"><span><b style="font-weight:600">Reflection on my quotes</b><br><span class="muted" style="font-size:.82rem">Finds a theme in what you save and suggests a question. Off unless you turn it on.</span></span><input type="checkbox" id="aiTog" ${st.ai?"checked":""}></label>
+  ${st.ai?`<div class="reflect" style="margin-top:10px"><span class="mono" style="color:var(--accent)">This week's theme · ${theme()}</span><span>Several lines you saved are about ${theme()}. Where in your own week did you face something similar?</span><span class="muted" style="font-size:.75rem">A prompt for reflection, not therapy or advice.</span></div>
+  <div class="quote" style="margin-top:10px"><span class="mono" style="color:var(--brass)">Weekly summary</span><div class="line"><span>Listening time</span><span class="price">${Math.round(st.secs/60)} min</span></div><div class="line"><span>Quotes saved this week</span><span class="price">${st.quotes.filter(q=>(new Date()-new Date(q.at+"T12:00"))<7*864e5).length}</span></div><div class="line"><span>Main theme</span><span class="price">${theme()}</span></div></div>`:""}
+  <div style="display:grid;gap:10px;margin-top:16px">${st.quotes.length?st.quotes.slice().reverse().map((q,k)=>`<div class="quote"><p>${esc(q.text)}</p><span class="mono muted">${esc(q.src)} · ${new Date(q.at+"T12:00").toLocaleDateString("en-US",{month:"short",day:"numeric"})}${q.sample?" · example":""}</span></div>`).join(""):'<div class="empty">No quotes yet. Start an episode and tap the pen.</div>'}</div>`;
+}
+
+function profile(){
+  const own=[...st.owned].map(item).filter(Boolean);
+  return `<h2 class="title">Profile</h2><p class="muted" style="margin:0 0 14px">Signed in as a guest. Accounts arrive with the live app.</p>
+  <div class="setting"><span>Club membership</span><span class="mono ${st.member?"":"muted"}">${st.member?"Active · "+money(CLUB.price)+"/mo":"Not a member"}</span></div>
+  <div class="setting"><span>Owned commentaries</span><span class="mono">${own.length}</span></div>
+  ${own.length?`<div class="list" style="margin-top:6px">${own.map(row).join("")}</div>`:""}
+  <div class="setting"><span>Blocked members</span><span class="mono">${st.blocked.length}</span></div>
+  ${st.blocked.map(n=>`<div class="setting" style="padding-left:12px"><span>${esc(n)}</span><button class="btn ghost small" data-unblock="${esc(n)}">Unblock</button></div>`).join("")}
+  <div class="setting"><span>Support</span><span class="muted" style="font-size:.85rem">help@reelandpage.example</span></div>
+  <div class="setting"><span>Reset this demo</span><button class="btn ghost small" id="reset">Reset</button></div>
+  <p class="demo" style="margin-top:16px">Prototype: purchases are simulated and nothing is charged. Chat messages and questions stay on this device only.</p>`;
+}
+
+/* ---------- render ---------- */
+function render(){
+  const s=$("#screen");
+  s.innerHTML=ui.detail?(ui.detail.startsWith("b-")?bundleView(ui.detail):detail(ui.detail)):({home,catalog,club,quotes,profile})[ui.tab]();
+  document.querySelectorAll("#tabs button").forEach(b=>b.dataset.tab===ui.tab?b.setAttribute("aria-current","page"):b.removeAttribute("aria-current"));
+  const q=$("#q"); if(q){q.oninput=e=>{ui.q=e.target.value;const pos=e.target.selectionStart;render();const n=$("#q");n.focus();n.setSelectionRange(pos,pos)}}
+  const cf=$("#chatForm"); if(cf)cf.onsubmit=e=>{e.preventDefault();const v=$("#chatIn").value.trim();if(!v)return;st.chat.push({who:"You",me:1,t:v});save();render();const m=$("#screen");m.scrollTop=m.scrollHeight;$("#chatIn").focus()};
+  const qf=$("#qForm"); if(qf)qf.onsubmit=e=>{e.preventDefault();const v=$("#qIn").value.trim();if(!v)return;st.qs.push({who:"You",q:v});save();render();toast("Question sent to "+HOST)};
+  const ai=$("#aiTog"); if(ai)ai.onchange=e=>{st.ai=e.target.checked;save();render()};
+  const rs=$("#reset"); if(rs)rs.onclick=()=>{["owned","member","quotes","pos","chat","qs","secs","days","ai","blocked"].forEach(k=>{try{localStorage.removeItem("rp2_"+k)}catch(e){}});location.reload()};
+  renderMini(); placePen();
+}
+function placePen(){const mini=!$("#mini").hidden;$("#pen").style.bottom=(mini?140:84)+"px";$("#pen").hidden=!pl.id}
+
+/* ---------- player ---------- */
+function startPlay(id,part){
+  const i=item(id); if(!i)return;
+  const acc=hasAccess(i);
+  if(!acc&&part>0){openBuy(id);return}
+  if(acc&&!partOpen(i,part)){toast("This episode opens later this month");return}
+  if(pl.id!==id||pl.part!==part){const saved=st.pos[id];pl.id=id;pl.part=part;pl.t=(saved&&saved.part===part)?saved.t:0}
+  if(!acc&&pl.t>=PREVIEW)pl.t=0;
+  pl.playing=true; openPlayer(); tick.start();
+}
+const tick={h:null,start(){if(this.h)return;this.h=setInterval(step,1000)},stop(){clearInterval(this.h);this.h=null}};
+function step(){
+  if(!pl.playing){tick.stop();return}
+  const i=item(pl.id), p=i.parts[pl.part], acc=hasAccess(i);
+  pl.t+=pl.speed; st.secs+=1;
+  if(!st.days.includes(today()))st.days.push(today());
+  if(!acc&&pl.t>=PREVIEW){pl.t=PREVIEW;pl.playing=false;persist();updPlayer();renderMini();openBuy(i.id,"Your 5-minute preview has ended.");return}
+  if(pl.t>=p.d){pl.t=0;const nx=pl.part+1;if(nx<i.parts.length&&partOpen(i,nx)&&pl.sleep!=="end"){pl.part=nx;toast("Next: "+i.parts[nx].t)}else{pl.playing=false;pl.part=Math.min(nx,i.parts.length-1);if(pl.sleep==="end")pl.sleep=0}}
+  if(pl.sleep&&pl.sleep!=="end"){pl.sleepLeft-=1;if(pl.sleepLeft<=0){pl.playing=false;pl.sleep=0;toast("Sleep timer paused playback")}}
+  if(Math.floor(pl.t)%5===0)persist();
+  updPlayer(); renderMini();
+}
+function persist(){st.pos[pl.id]={part:pl.part,t:pl.t};save()}
+function curPara(){const i=item(pl.id),p=i.parts[pl.part];return Math.min(p.x.length-1,Math.floor(pl.t/p.d*p.x.length))}
+function openPlayer(){
+  const i=item(pl.id), acc=hasAccess(i);
+  $("#player").innerHTML=`<div class="player">
+    <div class="topbar"><button class="back" id="closePl">↓ Close</button><span class="mono muted">Episode ${pl.part+1} of ${i.parts.length}</span></div>
+    ${poster(i)}
+    <div class="center"><h2 class="title" style="font-size:1.5rem" id="plPart">${esc(i.parts[pl.part].t)}</h2><div class="muted">${esc(i.title)} · ${HOST}</div></div>
+    <input type="range" class="scrub" id="scrub" min="0" step="1" aria-label="Position">
+    <div class="times"><span id="tNow"></span><span id="tEnd"></span></div>
+    <div class="controls"><button class="ibtn" id="back15" aria-label="Back 15 seconds">−15</button><button class="ibtn main" id="pp" aria-label="Play or pause"></button><button class="ibtn" id="fwd30" aria-label="Forward 30 seconds">+30</button></div>
+    <div class="opts"><button class="chip" id="spd"></button><button class="chip" id="slp"></button></div>
+    ${acc?"":`<div class="preview-note">Preview · the first 5 minutes are free. <button class="btn small" data-buy="${i.id}" style="margin-left:6px">Unlock ${money(i.price)}</button></div>`}
+    <div class="transcript" id="tr"></div></div>`;
+  $("#player").hidden=false; updPlayer();
+  $("#closePl").onclick=()=>{$("#player").hidden=true;persist();render()};
+  $("#pp").onclick=()=>{pl.playing=!pl.playing;if(pl.playing){if(!acc&&pl.t>=PREVIEW){openBuy(i.id);pl.playing=false}else tick.start()}persist();updPlayer();renderMini()};
+  $("#back15").onclick=()=>{pl.t=Math.max(0,pl.t-15);updPlayer()};
+  $("#fwd30").onclick=()=>{const lim=acc?i.parts[pl.part].d-1:PREVIEW-1;pl.t=Math.min(lim,pl.t+30);updPlayer()};
+  $("#scrub").oninput=e=>{pl.t=+e.target.value;updPlayer()};
+  $("#spd").onclick=()=>{const sp=[1,1.25,1.5,2,.75];pl.speed=sp[(sp.indexOf(pl.speed)+1)%sp.length];updPlayer()};
+  $("#slp").onclick=()=>{const o=[0,15,30,"end"];pl.sleep=o[(o.indexOf(pl.sleep)+1)%o.length];pl.sleepLeft=typeof pl.sleep==="number"?pl.sleep*60:0;updPlayer()};
+  placePen();
+}
+function updPlayer(){
+  if($("#player").hidden||!pl.id)return;
+  const i=item(pl.id),p=i.parts[pl.part],acc=hasAccess(i),max=acc?p.d:Math.min(p.d,PREVIEW);
+  const sc=$("#scrub"); if(!sc)return;
+  sc.max=max; sc.value=pl.t; $("#plPart").textContent=p.t;
+  $("#tNow").textContent=mmss(pl.t); $("#tEnd").textContent=(acc?"−":"preview ")+mmss(max-pl.t);
+  $("#pp").textContent=pl.playing?"❚❚":"▶";
+  $("#spd").textContent=pl.speed+"×";
+  $("#slp").textContent=pl.sleep===0?"Sleep timer: off":pl.sleep==="end"?"Sleep: end of episode":"Sleep: "+Math.ceil(pl.sleepLeft/60)+" min";
+  const k=curPara(); $("#tr").innerHTML=`<span class="mono muted">Transcript</span>`+p.x.map((x,n)=>`<p class="${n===k?"on":""}">${esc(x)}</p>`).join("");
+}
+function renderMini(){
+  const m=$("#mini"); if(!pl.id){m.hidden=true;return}
+  const i=item(pl.id),p=i.parts[pl.part];
+  m.hidden=false;
+  m.innerHTML=`<div class="bar" style="width:${(pl.t/p.d*100).toFixed(1)}%"></div><button class="open" id="openPl"><b>${esc(i.title)}</b><span>${esc(p.t)} · ${mmss(pl.t)}</span></button><button class="ibtn" id="mBack" aria-label="Back 15 seconds" style="font-family:var(--mono);font-size:.68rem">−15</button><button class="ibtn main" id="mPP" aria-label="Play or pause">${pl.playing?"❚❚":"▶"}</button>`;
+  $("#openPl").onclick=openPlayer;
+  $("#mBack").onclick=()=>{pl.t=Math.max(0,pl.t-15);renderMini()};
+  $("#mPP").onclick=()=>{const acc=hasAccess(i);if(!pl.playing&&!acc&&pl.t>=PREVIEW){openBuy(i.id);return}pl.playing=!pl.playing;if(pl.playing)tick.start();persist();renderMini()};
+  placePen();
+}
+
+/* ---------- purchases ---------- */
+function openBuy(what,note){
+  let name,amt,desc;
+  if(what==="club"){name="Club membership";amt=CLUB.price;desc="Billed monthly, renews automatically. Cancel anytime in settings."}
+  else if(what.startsWith("b-")){const b=BUNDLES.find(x=>x.id===what);name="Collection: "+b.title;amt=b.price;desc="One-time purchase. All "+b.ids.length+" commentaries stay yours."}
+  else{const i=item(what);name=i.title+" · full commentary";amt=i.price;desc="One-time purchase. Yours to keep, with all "+i.parts.length+" episodes."}
+  $("#sheetBody").innerHTML=`${note?`<span class="mono" style="color:var(--brass)">${esc(note)}</span>`:""}<h3>${what==="club"?"Join the club":"Unlock"}</h3>
+   <div class="line"><span>${esc(name)}</span><span class="price">${money(amt)}${what==="club"?"/mo":""}</span></div>
+   <span class="muted" style="font-size:.86rem">${desc}</span>
+   <div class="demo">Prototype checkout. In the live app this step opens Apple or Google payment. No money is charged here.</div>
+   <div class="row" style="justify-content:flex-end"><button class="btn ghost" id="cBuy">Not now</button><button class="btn" id="oBuy">Pay ${money(amt)}</button></div>`;
+  $("#sheet").hidden=false; $("#oBuy").focus();
+  $("#cBuy").onclick=()=>$("#sheet").hidden=true;
+  $("#oBuy").onclick=()=>{
+    if(what==="club")st.member=true;
+    else if(what.startsWith("b-"))BUNDLES.find(x=>x.id===what).ids.forEach(x=>st.owned.add(x));
+    else st.owned.add(what);
+    save(); $("#sheet").hidden=true; toast(what==="club"?"Welcome to the club":"Unlocked. It's yours to keep.");
+    if(!$("#player").hidden)openPlayer(); render();
+  };
+}
+
+function memberMenu(name){
+  $("#sheetBody").innerHTML=`<h3>${esc(name)}</h3><span class="muted" style="font-size:.88rem">Reports go to the moderators, who review them. Blocking hides this member's messages from you right away; you can undo it in Profile.</span>
+   <button class="btn ghost" id="mRep">Report message</button><button class="btn" id="mBlk">Block ${esc(name)}</button><button class="btn ghost" id="mCan">Cancel</button>`;
+  $("#sheet").hidden=false;
+  $("#mCan").onclick=()=>$("#sheet").hidden=true;
+  $("#mRep").onclick=()=>{$("#sheet").hidden=true;toast("Report sent to moderators")};
+  $("#mBlk").onclick=()=>{if(!st.blocked.includes(name))st.blocked.push(name);save();$("#sheet").hidden=true;render();toast(name+" is blocked")};
+}
+let tt; function toast(m){const t=$("#toast");t.textContent=m;t.hidden=false;clearTimeout(tt);tt=setTimeout(()=>t.hidden=true,2400)}
+
+/* ---------- events ---------- */
+$("#app").addEventListener("click",e=>{
+  const g=(s)=>e.target.closest(s);
+  let el;
+  if((el=g("[data-buy]"))){openBuy(el.dataset.buy);return}
+  if((el=g("[data-play]"))){startPlay(el.dataset.play,+el.dataset.part);return}
+  if((el=g("[data-item]"))){ui.detail=el.dataset.item;$("#player").hidden=true;render();$("#screen").scrollTop=0;return}
+  if((el=g("[data-bundle]"))){ui.detail=el.dataset.bundle;render();$("#screen").scrollTop=0;return}
+  if((el=g("[data-back]"))){ui.detail=null;render();return}
+  if((el=g("[data-tab]"))){ui.tab=el.dataset.tab;ui.detail=null;$("#player").hidden=true;render();$("#screen").scrollTop=0;return}
+  if((el=g("[data-filter]"))){ui.filter=el.dataset.filter;render();return}
+  if((el=g("[data-clubtab]"))){ui.clubTab=el.dataset.clubtab;render();return}
+  if((el=g("[data-member]"))){memberMenu(el.dataset.member);return}
+  if((el=g("[data-unblock]"))){st.blocked=st.blocked.filter(n=>n!==el.dataset.unblock);save();render();toast("Unblocked");return}
+  if(e.target.id==="sheet")$("#sheet").hidden=true;
+});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"){if(!$("#sheet").hidden)$("#sheet").hidden=true;else if(!$("#player").hidden){$("#player").hidden=true;render()}}});
+$("#pen").onclick=()=>{
+  if(!pl.id){toast("Start an episode first, then tap the pen");return}
+  const i=item(pl.id),p=i.parts[pl.part],line=p.x[curPara()];
+  if(st.quotes.some(q=>q.text===line)){toast("Already in your quotes");return}
+  st.quotes.push({text:line,src:i.title+" · "+p.t,at:today()});save();toast("Saved to your quotes");
+  if(ui.tab==="quotes"&&!ui.detail)render();
+};
+
+render();
+</script>
