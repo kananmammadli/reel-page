@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import type { Episode, Title } from "@reel-and-page/shared";
 import { usePlayer } from "@/components/player/PlayerProvider";
 import { TranscriptView } from "@/components/player/TranscriptView";
@@ -11,7 +12,7 @@ function minutes(seconds: number): string {
 }
 
 export function TitleEpisodeList({ title, episodes }: { title: Title; episodes: Episode[] }) {
-  const { current, play, currentTime } = usePlayer();
+  const { current, play, currentTime, didJustFinish, sleepTimer } = usePlayer();
 
   const firstEpisode = episodes[0];
   const totalSeconds = episodes.reduce((sum, e) => sum + e.duration_s, 0);
@@ -22,6 +23,20 @@ export function TitleEpisodeList({ title, episodes }: { title: Title; episodes: 
     if (episode.id === firstEpisode?.id) return "preview";
     return "locked";
   }
+
+  // Auto-advance to the next unlocked episode (SPEC.md §3.3). Previews don't
+  // advance -- ending a preview should prompt a purchase, not skip ahead.
+  // The "end of episode" sleep timer also suppresses this for one ending.
+  useEffect(() => {
+    if (!didJustFinish || !playingEpisode || current?.variant !== "full" || sleepTimer === "end") return;
+    const index = episodes.findIndex((e) => e.id === playingEpisode.id);
+    const next = episodes[index + 1];
+    if (!next) return;
+    const access = episodeAccess(next);
+    if (access === "locked") return;
+    play(title, next, access === "preview" ? "preview" : "full");
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- episodeAccess/play are stable for this render's inputs
+  }, [didJustFinish]);
 
   return (
     <div>

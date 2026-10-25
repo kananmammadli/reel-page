@@ -1,11 +1,14 @@
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
+import type { AudioStatus } from "expo-audio";
 import { getAudioUrl, type AudioVariant, type Episode, type Title } from "@reel-and-page/shared";
 import { supabase } from "@/lib/supabase";
 
 const SPEEDS = [1, 1.25, 1.5, 2, 0.75];
+const SLEEP_TIMER_OPTIONS = [0, 15, 30, "end"] as const;
 
 type NowPlaying = { title: Title; episode: Episode; variant: AudioVariant };
+export type SleepTimer = (typeof SLEEP_TIMER_OPTIONS)[number];
 
 type PlayerState = {
   current: NowPlaying | null;
@@ -15,11 +18,16 @@ type PlayerState = {
   duration: number;
   speed: number;
   error: string | null;
+  // True right after the current track reaches its end, for a listener
+  // (e.g. auto-advance) to react to; cleared again on the next play().
+  didJustFinish: boolean;
+  sleepTimer: SleepTimer;
   play: (title: Title, episode: Episode, variant: AudioVariant) => Promise<void>;
   togglePlay: () => void;
   seek: (seconds: number) => void;
   skip: (deltaSeconds: number) => void;
   cycleSpeed: () => void;
+  cycleSleepTimer: () => void;
   close: () => void;
 };
 
@@ -32,6 +40,13 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(false);
   const [speed, setSpeed] = useState(1);
   const [error, setError] = useState<string | null>(null);
+  const [didJustFinish, setDidJustFinish] = useState(false);
+  const [sleepTimer, setSleepTimer] = useState<SleepTimer>(0);
+  const sleepTimerRef = useRef<SleepTimer>(0);
+
+  useEffect(() => {
+    sleepTimerRef.current = sleepTimer;
+  }, [sleepTimer]);
 
   useEffect(() => {
     setAudioModeAsync({
@@ -40,6 +55,25 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       interruptionMode: "doNotMix",
     });
   }, []);
+
+  useEffect(() => {
+    const subscription = player.addListener("playbackStatusUpdate", (status: AudioStatus) => {
+      if (status.didJustFinish) {
+        setDidJustFinish(true);
+        if (sleepTimerRef.current === "end") setSleepTimer(0);
+      }
+    });
+    return () => subscription.remove();
+  }, [player]);
+
+  useEffect(() => {
+    if (typeof sleepTimer !== "number" || sleepTimer === 0) return;
+    const handle = setTimeout(() => {
+      player.pause();
+      setSleepTimer(0);
+    }, sleepTimer * 60 * 1000);
+    return () => clearTimeout(handle);
+  }, [sleepTimer, player]);
 
   const play = useCallback(
     async (title: Title, episode: Episode, variant: AudioVariant) => {
@@ -51,6 +85,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
       setError(null);
       setLoading(true);
+      setDidJustFinish(false);
       try {
         const url = await getAudioUrl(supabase, episode.id, variant);
         player.replace(url);
@@ -88,6 +123,10 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     player.setPlaybackRate(next);
   }, [speed, player]);
 
+  const cycleSleepTimer = useCallback(() => {
+    setSleepTimer((prev) => SLEEP_TIMER_OPTIONS[(SLEEP_TIMER_OPTIONS.indexOf(prev) + 1) % SLEEP_TIMER_OPTIONS.length]!);
+  }, []);
+
   const close = useCallback(() => {
     player.pause();
     player.clearLockScreenControls();
@@ -104,11 +143,14 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         duration: status.duration,
         speed,
         error,
+        didJustFinish,
+        sleepTimer,
         play,
         togglePlay,
         seek,
         skip,
         cycleSpeed,
+        cycleSleepTimer,
         close,
       }}
     >

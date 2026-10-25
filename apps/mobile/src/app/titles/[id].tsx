@@ -20,7 +20,7 @@ function minutes(seconds: number): string {
 export default function TitleScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const theme = useTheme();
-  const { current, play, currentTime } = usePlayer();
+  const { current, play, currentTime, didJustFinish, sleepTimer } = usePlayer();
 
   const [title, setTitle] = useState<Title | null>(null);
   const [episodes, setEpisodes] = useState<Episode[]>([]);
@@ -42,6 +42,21 @@ export default function TitleScreen() {
       cancelled = true;
     };
   }, [id]);
+
+  // Auto-advance to the next unlocked episode (SPEC.md §3.3). Previews don't
+  // advance -- ending a preview should prompt a purchase, not skip ahead.
+  // The "end of episode" sleep timer also suppresses this for one ending.
+  useEffect(() => {
+    if (!title || !didJustFinish || !current || current.title.id !== title.id) return;
+    if (current.variant !== "full" || sleepTimer === "end") return;
+    const index = episodes.findIndex((e) => e.id === current.episode.id);
+    const next = episodes[index + 1];
+    if (!next) return;
+    const nextAccess = title.is_free ? "full" : next.id === episodes[0]?.id ? "preview" : "locked";
+    if (nextAccess === "locked") return;
+    play(title, next, nextAccess);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- episodes/title/play are stable for this render's inputs
+  }, [didJustFinish]);
 
   if (loading || !title) {
     return (

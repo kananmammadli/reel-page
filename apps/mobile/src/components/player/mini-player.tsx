@@ -11,8 +11,21 @@ function formatTime(seconds: number): string {
 }
 
 export function MiniPlayer() {
-  const { current, playing, loading, currentTime, duration, speed, error, togglePlay, skip, cycleSpeed, close } =
-    usePlayer();
+  const {
+    current,
+    playing,
+    loading,
+    currentTime,
+    duration,
+    speed,
+    sleepTimer,
+    error,
+    togglePlay,
+    skip,
+    cycleSpeed,
+    cycleSleepTimer,
+    close,
+  } = usePlayer();
 
   if (!current) return null;
 
@@ -56,6 +69,9 @@ export function MiniPlayer() {
         </Pressable>
         <Pressable style={styles.iconBtn} onPress={cycleSpeed} accessibilityLabel="Playback speed">
           <ThemedText type="small">{speed}×</ThemedText>
+        </Pressable>
+        <Pressable style={styles.iconBtn} onPress={cycleSleepTimer} accessibilityLabel="Sleep timer">
+          <ThemedText type="small">{sleepTimer === 0 ? "😴" : sleepTimer === "end" ? "end" : `${sleepTimer}m`}</ThemedText>
         </Pressable>
       </View>
     </ThemedView>

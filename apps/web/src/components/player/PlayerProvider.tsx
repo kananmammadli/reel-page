@@ -10,8 +10,10 @@ import {
 import { supabase } from "@/lib/supabase";
 
 const SPEEDS = [1, 1.25, 1.5, 2, 0.75];
+const SLEEP_TIMER_OPTIONS = [0, 15, 30, "end"] as const;
 
 type NowPlaying = { title: Title; episode: Episode; variant: AudioVariant };
+export type SleepTimer = (typeof SLEEP_TIMER_OPTIONS)[number];
 
 type PlayerState = {
   current: NowPlaying | null;
@@ -21,11 +23,16 @@ type PlayerState = {
   duration: number;
   speed: number;
   error: string | null;
+  // True for one render after the current track reaches its end, so a
+  // listener (e.g. auto-advance) can react to it, then reset on the next play().
+  didJustFinish: boolean;
+  sleepTimer: SleepTimer;
   play: (title: Title, episode: Episode, variant: AudioVariant) => Promise<void>;
   togglePlay: () => void;
   seek: (seconds: number) => void;
   skip: (deltaSeconds: number) => void;
   cycleSpeed: () => void;
+  cycleSleepTimer: () => void;
   close: () => void;
 };
 
@@ -40,6 +47,13 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const [duration, setDuration] = useState(0);
   const [speed, setSpeed] = useState(1);
   const [error, setError] = useState<string | null>(null);
+  const [didJustFinish, setDidJustFinish] = useState(false);
+  const [sleepTimer, setSleepTimer] = useState<SleepTimer>(0);
+  const sleepTimerRef = useRef<SleepTimer>(0);
+
+  useEffect(() => {
+    sleepTimerRef.current = sleepTimer;
+  }, [sleepTimer]);
 
   useEffect(() => {
     const audio = new Audio();
@@ -48,7 +62,11 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     const onLoaded = () => setDuration(audio.duration || 0);
     const onPlay = () => setPlaying(true);
     const onPause = () => setPlaying(false);
-    const onEnded = () => setPlaying(false);
+    const onEnded = () => {
+      setPlaying(false);
+      setDidJustFinish(true);
+      if (sleepTimerRef.current === "end") setSleepTimer(0);
+    };
     audio.addEventListener("timeupdate", onTime);
     audio.addEventListener("loadedmetadata", onLoaded);
     audio.addEventListener("play", onPlay);
@@ -77,6 +95,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
 
       setError(null);
       setLoading(true);
+      setDidJustFinish(false);
       try {
         const url = await getAudioUrl(supabase, episode.id, variant);
         audio.src = url;
@@ -121,6 +140,19 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     if (audioRef.current) audioRef.current.playbackRate = next;
   }, [speed]);
 
+  const cycleSleepTimer = useCallback(() => {
+    setSleepTimer((prev) => SLEEP_TIMER_OPTIONS[(SLEEP_TIMER_OPTIONS.indexOf(prev) + 1) % SLEEP_TIMER_OPTIONS.length]!);
+  }, []);
+
+  useEffect(() => {
+    if (typeof sleepTimer !== "number" || sleepTimer === 0) return;
+    const handle = setTimeout(() => {
+      audioRef.current?.pause();
+      setSleepTimer(0);
+    }, sleepTimer * 60 * 1000);
+    return () => clearTimeout(handle);
+  }, [sleepTimer]);
+
   const close = useCallback(() => {
     const audio = audioRef.current;
     if (audio) {
@@ -142,11 +174,14 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
         duration,
         speed,
         error,
+        didJustFinish,
+        sleepTimer,
         play,
         togglePlay,
         seek,
         skip,
         cycleSpeed,
+        cycleSleepTimer,
         close,
       }}
     >

@@ -9,8 +9,22 @@ function formatTime(seconds: number): string {
 }
 
 export function MiniPlayer() {
-  const { current, playing, loading, currentTime, duration, speed, error, togglePlay, seek, skip, cycleSpeed, close } =
-    usePlayer();
+  const {
+    current,
+    playing,
+    loading,
+    currentTime,
+    duration,
+    speed,
+    sleepTimer,
+    error,
+    togglePlay,
+    seek,
+    skip,
+    cycleSpeed,
+    cycleSleepTimer,
+    close,
+  } = usePlayer();
 
   if (!current) return null;
 
@@ -39,6 +53,9 @@ export function MiniPlayer() {
       </button>
       <button className={styles.btn} onClick={cycleSpeed} aria-label="Playback speed">
         {speed}×
+      </button>
+      <button className={styles.btn} onClick={cycleSleepTimer} aria-label="Sleep timer">
+        {sleepTimer === 0 ? "😴" : sleepTimer === "end" ? "end" : `${sleepTimer}m`}
       </button>
       <input
         className={styles.scrub}
