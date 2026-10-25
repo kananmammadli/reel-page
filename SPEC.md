@@ -1,5 +1,7 @@
 # Reel & Page — Product Specification
 
+*English version. Russian translation: [SPEC.ru.md](SPEC.ru.md). Update both when either changes — see "Working rules" in [CLAUDE.md](CLAUDE.md).*
+
 Version 0.1 · October 2026 · Owner: Liliya
 
 ## 1. Product summary

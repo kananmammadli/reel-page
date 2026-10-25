@@ -33,6 +33,7 @@ prototype/         HTML prototype (reference only, not shipped)
 ## Working rules
 
 - Build in the milestone order in `SPEC.md`. Finish and verify one milestone before starting the next.
+- `SPEC.md` (English) and `SPEC.ru.md` (Russian) must stay in sync. Any edit to one requires the same edit in the other, in the same commit.
 - Every schema change is a migration in `supabase/migrations`. Never edit the database by hand.
 - Never commit secrets. Use `.env.local` (git-ignored) and keep `.env.example` up to date with variable names only.
 - Paid audio must never be reachable by unpaid users: serve full episodes only through short-lived signed URLs issued after an entitlement check. Previews are separate 5-minute files.
