@@ -16,43 +16,18 @@ pnpm workspace + Turborepo, `apps/mobile` (Expo/Expo Router), `apps/web` (Next.j
 
 ---
 
-## Milestone 2 — Catalog + player
+## Milestone 2 — Catalog + player ✅ done
 
-**Goal:** anyone can browse the catalog and play free titles and previews, on both web and mobile, with a real audio player.
+Catalog schema + RLS + seed data + signed-URL Edge Function (`b5ceecf`), web catalog/player (`1cd80e0`), mobile catalog/player (`f543818`), sleep timer + auto-advance (`248db45`).
 
-### 2.1 Data layer
-1. `supabase/migrations/<ts>_catalog.sql`:
-   - `titles`, `episodes`, `collections`, `collection_titles` tables exactly as drafted in `SPEC.md` §4. Use a Postgres `enum` for `titles.type` (`film`, `story`).
-   - Indexes: `episodes(title_id, position)`, `collection_titles(collection_id)`, `collection_titles(title_id)`.
-   - RLS: enable on all four tables. Policy: `anon` and `authenticated` can `SELECT` rows where `published_at is not null`. No insert/update/delete policies yet (only the service role writes, via the dashboard/SQL for now — the admin panel comes in milestone 5).
-2. Storage: in the same migration (or a follow-up one), create two buckets via `storage.buckets`:
-   - `posters` — public read.
-   - `audio` — **not** public. Milestone 2 has no entitlement check yet, so for now: preview files live at a fixed path pattern (`<episode_id>/preview.m4a`) and your app code always requests those via `storage.from('audio').createSignedUrl(...)` with no auth gate; full-episode files (`<episode_id>/full.m4a`) are also fetchable the same way for titles where `is_free = true` only. This is intentionally a placeholder — milestone 4 replaces "is_free check in app code" with a real entitlement check.
-3. `supabase/seed.sql`: insert 4–6 titles with 2–4 episodes each, mirroring what's in `prototype/reel-and-page.html` so local dev visually matches the reference. Point `poster_url` at the `posters` bucket; drop a couple of short placeholder `.m4a` files into the `audio` bucket via the seed script or a `supabase/seed/` folder of sample audio.
+Switched the audio library from `react-native-track-player` to `expo-audio` mid-milestone — v4 has no New Architecture support, which Expo SDK 55+ requires with no opt-out, and v5 is alpha-only. See `CLAUDE.md`.
 
-### 2.2 Shared package
-4. `packages/shared/src/catalog.ts`: query helpers — `getHomeRails()`, `searchTitles(query, filters)`, `getTitle(id)`, `getEpisodes(titleId)` — thin wrappers over `supabase-js`, typed against the generated `Database` type. No UI code here.
-5. `packages/shared/src/audio-urls.ts`: `getPreviewUrl(episodeId)`, `getFullAudioUrl(episodeId, isFree)` wrapping `createSignedUrl`.
+Verified: pgTAP + vitest suites pass; `expo export`/`next build` both succeed; real-browser (CDP, trusted clicks) and `expo-doctor` checks confirmed playback, preview gating, auto-advance, and sleep-timer cycling actually work, not just type-check.
 
-### 2.3 Web (`apps/web`)
-6. Routes: `/` (home rails), `/catalog` (search + filters: All/Films/Stories/Free), `/titles/[id]` (title page: poster, metadata, episode list, play/preview button).
-7. A `<Player>` client component wrapping the HTML5 `<audio>` element: play/pause, ±15s/30s seek, scrub bar, speed selector (0.75×–2×). Lift playback state into a small client store (React context is fine, no need for a state library) so a mini player can persist across route navigations inside the App Router layout.
-8. Mini player: rendered in `app/layout.tsx`, shown whenever something is loaded, docked at the bottom.
-9. Transcript view: render `episodes.transcript` (jsonb array of `{ text, start_s, end_s }` — define and document this shape in `SPEC.md` §4 if not already precise) and highlight the entry matching current playback time.
-10. Preview gating in the UI: if `title.is_free` is false, the full-episode play button is disabled with a "Buy to unlock" label (non-functional CTA — wired up in milestone 4); the preview button is always active.
-
-### 2.4 Mobile (`apps/mobile`)
-11. Install and configure `expo-audio` (switched from `react-native-track-player`, which has no New Architecture support — see `CLAUDE.md`): background playback is on by default, call `setActiveForLockScreen` for lock-screen/Control Center controls with track metadata.
-12. Screens via Expo Router: `app/(tabs)/index.tsx` (home rails), `app/(tabs)/explore.tsx` (catalog + search/filters), `app/titles/[id].tsx` (title detail).
-13. Player controls hooked to TrackPlayer: play/pause, ±15s/30s, scrub, speed, sleep timer (15 min / 30 min / end-of-episode — implement as a `setTimeout` that calls `TrackPlayer.pause()`, cleared on manual pause/seek).
-14. Mini player docked above the tab bar — a component rendered in the tabs layout, reading playback state from a shared hook (mirror the web store's shape conceptually, but native-specific since it talks to TrackPlayer instead of `<audio>`).
-15. Same transcript view and preview-gating UI as web, built with RN components.
-
-### 2.5 Tests
-16. `packages/shared`: unit tests for the catalog query helpers against a mocked Supabase client (use `vitest` + a hand-rolled mock, no need for a heavier framework yet — this is the first package to need a test runner, so add it: `vitest` as a devDependency, `pnpm test` script becomes `vitest run`).
-17. RLS: a SQL test (plain `.sql` file run via `supabase test db`, or a short script using `psql` with the `anon` role) asserting anon can `SELECT` published titles and cannot `SELECT` unpublished ones.
-
-**Definition of done:** `pnpm dev` runs web + mobile against local Supabase. Catalog browsing and search work on both. Tapping a free title plays it in full; tapping a paid title only plays the preview. The mini player survives navigation. Transcript highlights move with playback. `pnpm lint && pnpm type-check && pnpm test` all green.
+Known, deliberately-deferred gaps (not bugs — scoped to later milestones):
+- Playback position isn't remembered or synced yet — that's milestone 3 (`playback_positions`, tied to accounts).
+- A finished preview just stops; it doesn't pop a purchase sheet, since there's no purchase flow to open yet — milestone 4 wires that up onto the already-present (disabled) "Buy to unlock" CTA.
+- Mobile runtime behavior (background playback, lock-screen controls) is unverified on a real device/simulator — none was available in this environment. Spot-check before shipping.
 
 ---
 
