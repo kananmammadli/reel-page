@@ -1,69 +1,75 @@
-import Image from "next/image";
+import Link from "next/link";
+import { getHomeRails } from "@reel-and-page/shared";
+import { supabase } from "@/lib/supabase";
+import { PosterCard } from "@/components/catalog/PosterCard";
 import styles from "./page.module.css";
 
-export default function Home() {
+// Supabase-js's internal fetch doesn't opt out of Next's build-time static
+// generation on its own, and this catalog must reflect live DB state (it
+// changes outside of app deploys), so force per-request rendering.
+export const dynamic = "force-dynamic";
+
+export default async function HomePage() {
+  const { freeToStart, recentlyAdded, collections } = await getHomeRails(supabase);
+
   return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className={styles.intro}>
-          <h1>
-            To get started, edit the{" "}
-            <code className={styles.code}>page.tsx</code> file.
-          </h1>
-          <p>
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className={styles.secondary}
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+    <div className={styles.main}>
+      <section>
+        <h2 className={styles.sectionTitle}>Free to start</h2>
+        {freeToStart.length === 0 ? (
+          <p className={styles.empty}>Nothing free yet.</p>
+        ) : (
+          <div className={styles.rail}>
+            {freeToStart.map((title) => (
+              <Link key={title.id} href={`/titles/${title.id}`} className={styles.card}>
+                <PosterCard id={title.id} title={title.title} year={title.year} type={title.type} posterUrl={title.poster_url} />
+                <div className={styles.cap}>{title.creator}</div>
+              </Link>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section>
+        <h2 className={styles.sectionTitle}>Collections</h2>
+        {collections.length === 0 ? (
+          <p className={styles.empty}>No collections yet.</p>
+        ) : (
+          <div className={styles.rail}>
+            {collections.map((collection) => (
+              <Link
+                key={collection.id}
+                href={`/collections/${collection.id}`}
+                className={styles.card}
+              >
+                <div
+                  className={styles.poster}
+                  style={{ background: "linear-gradient(160deg, #3d3a52, #15131f)" }}
+                >
+                  <span className={styles.posterLabel}>{collection.titles.length} episodes</span>
+                  <span className={styles.posterTitle}>{collection.name}</span>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section>
+        <h2 className={styles.sectionTitle}>Recently added</h2>
+        {recentlyAdded.length === 0 ? (
+          <p className={styles.empty}>Nothing here yet.</p>
+        ) : (
+          <div className={styles.rail}>
+            {recentlyAdded.map((title) => (
+              <Link key={title.id} href={`/titles/${title.id}`} className={styles.card}>
+                <PosterCard id={title.id} title={title.title} year={title.year} type={title.type} posterUrl={title.poster_url} />
+                <div className={styles.cap}>{title.creator}</div>
+              </Link>
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   );
 }

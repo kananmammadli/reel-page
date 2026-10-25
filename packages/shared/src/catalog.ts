@@ -25,21 +25,26 @@ function asEpisode(row: Tables<"episodes">): Episode {
   return { ...row, transcript: (row.transcript as unknown as TranscriptEntry[] | null) ?? [] };
 }
 
+export async function getCollections(client: Client): Promise<CollectionWithTitles[]> {
+  const { data, error } = await client.from("collections").select("*, titles(*)");
+  if (error) throw error;
+  return data as unknown as CollectionWithTitles[];
+}
+
 export async function getHomeRails(client: Client) {
   const [freeToStart, recentlyAdded, collections] = await Promise.all([
     client.from("titles").select("*").eq("is_free", true).order("created_at", { ascending: false }),
     client.from("titles").select("*").eq("is_free", false).order("created_at", { ascending: false }),
-    client.from("collections").select("*, titles(*)"),
+    getCollections(client),
   ]);
 
   if (freeToStart.error) throw freeToStart.error;
   if (recentlyAdded.error) throw recentlyAdded.error;
-  if (collections.error) throw collections.error;
 
   return {
     freeToStart: freeToStart.data,
     recentlyAdded: recentlyAdded.data,
-    collections: collections.data as unknown as CollectionWithTitles[],
+    collections,
   };
 }
 
