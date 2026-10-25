@@ -2,3 +2,22 @@
 node_modules/
 .env
 .env.local
+
+# Turborepo
+.turbo/
+
+# Next.js
+.next/
+
+# Expo
+.expo/
+apps/mobile/ios/
+apps/mobile/android/
+
+# TypeScript build
+dist/
+*.tsbuildinfo
+
+# Supabase
+supabase/.branches/
+supabase/.temp/

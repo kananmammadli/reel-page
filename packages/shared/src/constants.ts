@@ -1,0 +1,1 @@
+export const PREVIEW_DURATION_SECONDS = 5 * 60;
