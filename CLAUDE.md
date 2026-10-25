@@ -12,7 +12,7 @@ Kanan is an experienced data engineer with 25 years of IT expertise (Python, SQL
 
 - **Monorepo:** pnpm workspaces + Turborepo, TypeScript everywhere (strict mode).
 - **Mobile (`apps/mobile`):** Expo (React Native) with Expo Router. EAS Build for iOS/Android builds.
-- **Audio:** `react-native-track-player` for background playback, lock-screen and Control Center controls, speed, and resume.
+- **Audio:** `expo-audio` for background playback, lock-screen and Control Center controls, speed, and resume. (`react-native-track-player` v4 has no New Architecture support, which Expo SDK 55+ requires with no opt-out, and v5 is alpha-only — switched during milestone 2.)
 - **Web (`apps/web`):** Next.js (App Router). Public catalog pages, web player, Stripe checkout, and the host admin panel under `/admin`.
 - **Backend:** Supabase: Postgres, Auth (email + Sign in with Apple + Google), Storage for audio, Realtime for club chat, Edge Functions for webhooks and server logic. Row Level Security on every table.
 - **In-app payments:** RevenueCat over Apple App Store and Google Play (one-time purchases + club subscription).

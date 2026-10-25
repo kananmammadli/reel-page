@@ -42,7 +42,7 @@ pnpm workspace + Turborepo, `apps/mobile` (Expo/Expo Router), `apps/web` (Next.j
 10. Preview gating in the UI: if `title.is_free` is false, the full-episode play button is disabled with a "Buy to unlock" label (non-functional CTA — wired up in milestone 4); the preview button is always active.
 
 ### 2.4 Mobile (`apps/mobile`)
-11. Install and configure `react-native-track-player`: register the playback service in `index.js`/app entry, enable lock-screen/Control Center controls, background audio capability in `app.json` (`UIBackgroundModes: ["audio"]` for iOS).
+11. Install and configure `expo-audio` (switched from `react-native-track-player`, which has no New Architecture support — see `CLAUDE.md`): background playback is on by default, call `setActiveForLockScreen` for lock-screen/Control Center controls with track metadata.
 12. Screens via Expo Router: `app/(tabs)/index.tsx` (home rails), `app/(tabs)/explore.tsx` (catalog + search/filters), `app/titles/[id].tsx` (title detail).
 13. Player controls hooked to TrackPlayer: play/pause, ±15s/30s, scrub, speed, sleep timer (15 min / 30 min / end-of-episode — implement as a `setTimeout` that calls `TrackPlayer.pause()`, cleared on manual pause/seek).
 14. Mini player docked above the tab bar — a component rendered in the tabs layout, reading playback state from a shared hook (mirror the web store's shape conceptually, but native-specific since it talks to TrackPlayer instead of `<audio>`).
