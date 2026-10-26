@@ -2,7 +2,13 @@ import { useEffect, useState } from "react";
 import { useLocalSearchParams } from "expo-router";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { getEpisodes, getTitle, type Episode, type Title } from "@reel-and-page/shared";
+import {
+  getEpisodes,
+  getPlaybackPositionsForTitle,
+  getTitle,
+  type Episode,
+  type Title,
+} from "@reel-and-page/shared";
 
 import { PosterCard } from "@/components/catalog/poster-card";
 import { TranscriptView } from "@/components/player/transcript-view";
@@ -24,6 +30,7 @@ export default function TitleScreen() {
 
   const [title, setTitle] = useState<Title | null>(null);
   const [episodes, setEpisodes] = useState<Episode[]>([]);
+  const [savedPositions, setSavedPositions] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -31,10 +38,14 @@ export default function TitleScreen() {
     async function run() {
       setLoading(true);
       const [t, eps] = await Promise.all([getTitle(supabase, id), getEpisodes(supabase, id)]);
-      if (!cancelled) {
-        setTitle(t);
-        setEpisodes(eps);
-        setLoading(false);
+      if (cancelled) return;
+      setTitle(t);
+      setEpisodes(eps);
+      setLoading(false);
+
+      const { data: userData } = await supabase.auth.getUser();
+      if (!cancelled && userData.user) {
+        setSavedPositions(await getPlaybackPositionsForTitle(supabase, eps.map((e) => e.id)));
       }
     }
     run();
@@ -54,8 +65,8 @@ export default function TitleScreen() {
     if (!next) return;
     const nextAccess = title.is_free ? "full" : next.id === episodes[0]?.id ? "preview" : "locked";
     if (nextAccess === "locked") return;
-    play(title, next, nextAccess);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- episodes/title/play are stable for this render's inputs
+    playEpisode(next, nextAccess);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- episodes/title/playEpisode are stable for this render's inputs
   }, [didJustFinish]);
 
   if (loading || !title) {
@@ -76,6 +87,12 @@ export default function TitleScreen() {
     if (title!.is_free) return "full";
     if (episode.id === firstEpisode?.id) return "preview";
     return "locked";
+  }
+
+  function playEpisode(episode: Episode, access: "full" | "preview" | "locked") {
+    const variant = access === "preview" ? "preview" : "full";
+    const resumeAt = variant === "full" ? savedPositions[episode.id] : undefined;
+    play(title!, episode, variant, resumeAt);
   }
 
   return (
@@ -104,12 +121,9 @@ export default function TitleScreen() {
           </View>
 
           {firstEpisode && (
-            <Pressable
-              style={styles.playButton}
-              onPress={() => play(title, firstEpisode, title.is_free ? "full" : "preview")}
-            >
+            <Pressable style={styles.playButton} onPress={() => playEpisode(firstEpisode, episodeAccess(firstEpisode))}>
               <ThemedText style={styles.playButtonText}>
-                {title.is_free ? "Play" : "Play 5-min preview"}
+                {!title.is_free ? "Play 5-min preview" : savedPositions[firstEpisode.id] ? "Resume" : "Play"}
               </ThemedText>
             </Pressable>
           )}
@@ -118,11 +132,12 @@ export default function TitleScreen() {
             {episodes.map((episode, i) => {
               const access = episodeAccess(episode);
               const isPlaying = playingEpisode?.id === episode.id;
+              const canResume = access === "full" && !!savedPositions[episode.id];
               return (
                 <Pressable
                   key={episode.id}
                   disabled={access === "locked"}
-                  onPress={() => play(title, episode, access === "preview" ? "preview" : "full")}
+                  onPress={() => playEpisode(episode, access)}
                   style={[
                     styles.part,
                     { borderColor: isPlaying ? "#8a1f2d" : theme.backgroundSelected },
@@ -137,7 +152,13 @@ export default function TitleScreen() {
                     {episode.name}
                   </ThemedText>
                   <ThemedText type="small" themeColor="textSecondary">
-                    {access === "locked" ? "Locked" : access === "preview" ? "Preview" : minutes(episode.duration_s)}
+                    {access === "locked"
+                      ? "Locked"
+                      : access === "preview"
+                        ? "Preview"
+                        : canResume
+                          ? "Resume"
+                          : minutes(episode.duration_s)}
                   </ThemedText>
                 </Pressable>
               );

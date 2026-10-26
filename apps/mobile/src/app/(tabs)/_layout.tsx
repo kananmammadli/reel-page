@@ -22,6 +22,11 @@ export default function TabsLayout() {
         <NativeTabs.Trigger.Label>Catalog</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon src={require("@/assets/images/tabIcons/explore.png")} renderingMode="template" />
       </NativeTabs.Trigger>
+
+      <NativeTabs.Trigger name="account">
+        <NativeTabs.Trigger.Label>Profile</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf="person.crop.circle" md="person" />
+      </NativeTabs.Trigger>
     </NativeTabs>
   );
 }

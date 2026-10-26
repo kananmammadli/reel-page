@@ -1,11 +1,18 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
 import type { AudioStatus } from "expo-audio";
-import { getAudioUrl, type AudioVariant, type Episode, type Title } from "@reel-and-page/shared";
+import {
+  getAudioUrl,
+  upsertPlaybackPosition,
+  type AudioVariant,
+  type Episode,
+  type Title,
+} from "@reel-and-page/shared";
 import { supabase } from "@/lib/supabase";
 
 const SPEEDS = [1, 1.25, 1.5, 2, 0.75];
 const SLEEP_TIMER_OPTIONS = [0, 15, 30, "end"] as const;
+const POSITION_SYNC_INTERVAL_MS = 10_000;
 
 type NowPlaying = { title: Title; episode: Episode; variant: AudioVariant };
 export type SleepTimer = (typeof SLEEP_TIMER_OPTIONS)[number];
@@ -22,7 +29,7 @@ type PlayerState = {
   // (e.g. auto-advance) to react to; cleared again on the next play().
   didJustFinish: boolean;
   sleepTimer: SleepTimer;
-  play: (title: Title, episode: Episode, variant: AudioVariant) => Promise<void>;
+  play: (title: Title, episode: Episode, variant: AudioVariant, resumeAt?: number) => Promise<void>;
   togglePlay: () => void;
   seek: (seconds: number) => void;
   skip: (deltaSeconds: number) => void;
@@ -43,10 +50,40 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const [didJustFinish, setDidJustFinish] = useState(false);
   const [sleepTimer, setSleepTimer] = useState<SleepTimer>(0);
   const sleepTimerRef = useRef<SleepTimer>(0);
+  const [userId, setUserId] = useState<string | null>(null);
+  const userIdRef = useRef<string | null>(null);
+  const currentRef = useRef<NowPlaying | null>(null);
+  const wasPlayingRef = useRef(false);
 
   useEffect(() => {
     sleepTimerRef.current = sleepTimer;
   }, [sleepTimer]);
+
+  useEffect(() => {
+    userIdRef.current = userId;
+  }, [userId]);
+
+  useEffect(() => {
+    currentRef.current = current;
+  }, [current]);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? null));
+    const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUserId(session?.user?.id ?? null);
+    });
+    return () => subscription.subscription.unsubscribe();
+  }, []);
+
+  const syncPosition = useCallback((positionS: number) => {
+    const uid = userIdRef.current;
+    const track = currentRef.current;
+    // Resuming a preview mid-purchase-flow isn't meaningful -- only sync full playback.
+    if (!uid || !track || track.variant !== "full") return;
+    upsertPlaybackPosition(supabase, uid, track.episode.id, positionS).catch(() => {
+      // Best-effort: a missed sync just means resume starts a little earlier next time.
+    });
+  }, []);
 
   useEffect(() => {
     setAudioModeAsync({
@@ -62,9 +99,19 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         setDidJustFinish(true);
         if (sleepTimerRef.current === "end") setSleepTimer(0);
       }
+      if (wasPlayingRef.current && !status.playing) {
+        syncPosition(status.currentTime);
+      }
+      wasPlayingRef.current = status.playing;
     });
     return () => subscription.remove();
-  }, [player]);
+  }, [player, syncPosition]);
+
+  useEffect(() => {
+    if (!status.playing) return;
+    const handle = setInterval(() => syncPosition(player.currentTime), POSITION_SYNC_INTERVAL_MS);
+    return () => clearInterval(handle);
+  }, [status.playing, player, syncPosition]);
 
   useEffect(() => {
     if (typeof sleepTimer !== "number" || sleepTimer === 0) return;
@@ -76,7 +123,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   }, [sleepTimer, player]);
 
   const play = useCallback(
-    async (title: Title, episode: Episode, variant: AudioVariant) => {
+    async (title: Title, episode: Episode, variant: AudioVariant, resumeAt?: number) => {
       const sameTrack = current?.episode.id === episode.id && current.variant === variant;
       if (sameTrack) {
         player.play();
@@ -91,6 +138,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         player.replace(url);
         player.setPlaybackRate(speed);
         setCurrent({ title, episode, variant });
+        if (resumeAt) await player.seekTo(resumeAt);
         player.play();
         player.setActiveForLockScreen(true, { title: episode.name, artist: title.title });
       } catch (err) {
