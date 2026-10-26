@@ -31,21 +31,13 @@ Known, deliberately-deferred gaps (not bugs — scoped to later milestones):
 
 ---
 
-## Milestone 3 — Accounts + sync
+## Milestone 3 — Accounts + sync ✅ done (email only)
 
-**Goal:** users can sign in and their listening position and library follow them across devices.
+`profiles`/`playback_positions` migrations + RLS (`52e2d02`), web sign-in/account/sync (`52e2d02`), mobile Profile tab/sync (`33bab96`).
 
-1. Enable Supabase Auth providers: email (magic link or password — pick one, document the choice in `SPEC.md` open decisions if not already settled), Sign in with Apple, Google. Configure redirect URLs for web and the Expo deep link scheme for mobile.
-2. `supabase/migrations/<ts>_profiles.sql`: `profiles` table (per §4) with a trigger `on_auth_user_created` that inserts a row keyed by `auth.users.id`. RLS: a user can `SELECT`/`UPDATE` only their own row.
-3. `supabase/migrations/<ts>_playback_positions.sql`: `playback_positions` table. RLS: owner-only read/write (`user_id = auth.uid()`).
-4. Web: `/auth/sign-in` page using `@supabase/ssr` (cookie-based session for App Router). Add a root layout check for session and a `/account` page stub.
-5. Mobile: sign-in screen using `supabase-js` with Apple/Google native sign-in SDKs (`expo-apple-authentication`, a Google sign-in library compatible with Expo) exchanging tokens via `supabase.auth.signInWithIdToken`.
-6. Playback sync: on pause/every N seconds during playback, upsert `playback_positions`. On opening an episode, fetch the saved position and seek there. Debounce writes (e.g., every 10s, not every tick) to avoid hammering the DB.
-7. "Continue listening" rail on the home screen (both apps) reads the most recently updated `playback_positions` joined to `episodes`/`titles`.
-8. "Library" concept: for milestone 3, this is just "things you've started" (from `playback_positions`) since real ownership (`entitlements`) doesn't exist until milestone 4 — note this limitation inline in the UI copy or just show progress, not a purchased-items list yet.
-9. Tests: RLS tests for `profiles` and `playback_positions` (owner can read/write own row, cannot read/write another user's). A test for the debounced-upsert logic in `packages/shared` (fake timers).
+Chose email one-time-code over magic links so web and mobile share one flow with no deep-link setup; customized the local `magic_link` email template to include the code. Apple/Google sign-in are disabled UI stubs — both need real developer credentials (Apple Developer Program, Google Cloud OAuth client) that only Liliya/Kanan can provision; wire them up with `signInWithIdToken` once those exist.
 
-**Definition of done:** sign in/out works on web and mobile with all three providers. Starting an episode on one device and reopening it on another resumes at the right position. RLS tests pass; no table is readable/writable cross-user.
+Verified on web end-to-end in a real browser (CDP): signed in with a real OTP code fetched from Mailpit, played an episode, paused (confirmed the upsert lands in Postgres), reloaded and saw "Resume" render, clicked it and confirmed playback actually resumed from the saved position. pgTAP RLS tests pass (owner-only on both tables, trigger auto-creates profiles). Mobile mirrors the same logic but is unverified at runtime (no simulator/device available in this environment) — spot-check sign-in and resume on a real device before shipping.
 
 ---
 
