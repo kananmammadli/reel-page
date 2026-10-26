@@ -249,6 +249,12 @@ otp_expiry = 3600
 # subject = "You have been invited"
 # content_path = "./supabase/templates/invite.html"
 
+# Email one-time-code sign-in (milestone 3): the default template only
+# includes the magic-link URL, not the 6-digit code our sign-in UI asks for.
+[auth.email.template.magic_link]
+subject = "Your Reel & Page sign-in code"
+content_path = "./supabase/templates/magic_link.html"
+
 # Uncomment to customize notification email template
 # [auth.email.notification.password_changed]
 # enabled = true

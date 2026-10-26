@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { getHomeRails } from "@reel-and-page/shared";
-import { supabase } from "@/lib/supabase";
+import { getContinueListening, getHomeRails } from "@reel-and-page/shared";
+import { createClient } from "@/lib/supabase/server";
 import { PosterCard } from "@/components/catalog/PosterCard";
 import styles from "./page.module.css";
 
@@ -10,10 +10,35 @@ import styles from "./page.module.css";
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const { freeToStart, recentlyAdded, collections } = await getHomeRails(supabase);
+  const supabase = await createClient();
+  const { data: userData } = await supabase.auth.getUser();
+  const [{ freeToStart, recentlyAdded, collections }, continueListening] = await Promise.all([
+    getHomeRails(supabase),
+    userData.user ? getContinueListening(supabase, 10) : Promise.resolve([]),
+  ]);
 
   return (
     <div className={styles.main}>
+      {continueListening.length > 0 && (
+        <section>
+          <h2 className={styles.sectionTitle}>Continue listening</h2>
+          <div className={styles.rail}>
+            {continueListening.map((item) => (
+              <Link key={item.episode.id} href={`/titles/${item.title.id}`} className={styles.card}>
+                <PosterCard
+                  id={item.title.id}
+                  title={item.title.title}
+                  year={item.title.year}
+                  type={item.title.type}
+                  posterUrl={item.title.poster_url}
+                />
+                <div className={styles.cap}>{item.episode.name}</div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
       <section>
         <h2 className={styles.sectionTitle}>Free to start</h2>
         {freeToStart.length === 0 ? (

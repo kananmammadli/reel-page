@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@reel-and-page/shared": "workspace:*",
+    "@supabase/ssr": "^0.12.7",
     "next": "16.4.3",
     "react": "19.3.0",
     "react-dom": "19.3.0"

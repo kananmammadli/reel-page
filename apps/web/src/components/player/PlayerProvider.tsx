@@ -3,14 +3,18 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import {
   getAudioUrl,
+  upsertPlaybackPosition,
   type AudioVariant,
   type Episode,
   type Title,
 } from "@reel-and-page/shared";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@/lib/supabase/client";
+
+const supabase = createClient();
 
 const SPEEDS = [1, 1.25, 1.5, 2, 0.75];
 const SLEEP_TIMER_OPTIONS = [0, 15, 30, "end"] as const;
+const POSITION_SYNC_INTERVAL_MS = 10_000;
 
 type NowPlaying = { title: Title; episode: Episode; variant: AudioVariant };
 export type SleepTimer = (typeof SLEEP_TIMER_OPTIONS)[number];
@@ -27,7 +31,7 @@ type PlayerState = {
   // listener (e.g. auto-advance) can react to it, then reset on the next play().
   didJustFinish: boolean;
   sleepTimer: SleepTimer;
-  play: (title: Title, episode: Episode, variant: AudioVariant) => Promise<void>;
+  play: (title: Title, episode: Episode, variant: AudioVariant, resumeAt?: number) => Promise<void>;
   togglePlay: () => void;
   seek: (seconds: number) => void;
   skip: (deltaSeconds: number) => void;
@@ -50,10 +54,39 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const [didJustFinish, setDidJustFinish] = useState(false);
   const [sleepTimer, setSleepTimer] = useState<SleepTimer>(0);
   const sleepTimerRef = useRef<SleepTimer>(0);
+  const [userId, setUserId] = useState<string | null>(null);
+  const userIdRef = useRef<string | null>(null);
+  const currentRef = useRef<NowPlaying | null>(null);
 
   useEffect(() => {
     sleepTimerRef.current = sleepTimer;
   }, [sleepTimer]);
+
+  useEffect(() => {
+    userIdRef.current = userId;
+  }, [userId]);
+
+  useEffect(() => {
+    currentRef.current = current;
+  }, [current]);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? null));
+    const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUserId(session?.user?.id ?? null);
+    });
+    return () => subscription.subscription.unsubscribe();
+  }, []);
+
+  const syncPosition = useCallback((positionS: number) => {
+    const uid = userIdRef.current;
+    const track = currentRef.current;
+    // Resuming a preview mid-purchase-flow isn't meaningful -- only sync full playback.
+    if (!uid || !track || track.variant !== "full") return;
+    upsertPlaybackPosition(supabase, uid, track.episode.id, positionS).catch(() => {
+      // Best-effort: a missed sync just means resume starts a little earlier next time.
+    });
+  }, []);
 
   useEffect(() => {
     const audio = new Audio();
@@ -61,7 +94,10 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     const onTime = () => setCurrentTime(audio.currentTime);
     const onLoaded = () => setDuration(audio.duration || 0);
     const onPlay = () => setPlaying(true);
-    const onPause = () => setPlaying(false);
+    const onPause = () => {
+      setPlaying(false);
+      syncPosition(audio.currentTime);
+    };
     const onEnded = () => {
       setPlaying(false);
       setDidJustFinish(true);
@@ -80,10 +116,10 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       audio.removeEventListener("ended", onEnded);
       audio.pause();
     };
-  }, []);
+  }, [syncPosition]);
 
   const play = useCallback(
-    async (title: Title, episode: Episode, variant: AudioVariant) => {
+    async (title: Title, episode: Episode, variant: AudioVariant, resumeAt?: number) => {
       const audio = audioRef.current;
       if (!audio) return;
 
@@ -101,7 +137,8 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
         audio.src = url;
         audio.playbackRate = speed;
         setCurrent({ title, episode, variant });
-        setCurrentTime(0);
+        setCurrentTime(resumeAt ?? 0);
+        if (resumeAt) audio.currentTime = resumeAt;
         await audio.play();
       } catch (err) {
         setError(err instanceof Error ? err.message : "Could not play this episode");
@@ -152,6 +189,14 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     }, sleepTimer * 60 * 1000);
     return () => clearTimeout(handle);
   }, [sleepTimer]);
+
+  useEffect(() => {
+    if (!playing) return;
+    const handle = setInterval(() => {
+      if (audioRef.current) syncPosition(audioRef.current.currentTime);
+    }, POSITION_SYNC_INTERVAL_MS);
+    return () => clearInterval(handle);
+  }, [playing, syncPosition]);
 
   const close = useCallback(() => {
     const audio = audioRef.current;

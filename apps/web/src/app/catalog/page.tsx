@@ -3,9 +3,11 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { searchTitles, type CatalogFilter, type Title } from "@reel-and-page/shared";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@/lib/supabase/client";
 import { PosterCard } from "@/components/catalog/PosterCard";
 import styles from "./page.module.css";
+
+const supabase = createClient();
 
 const FILTERS: { key: CatalogFilter; label: string }[] = [
   { key: "all", label: "All" },

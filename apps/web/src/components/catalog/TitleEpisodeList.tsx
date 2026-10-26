@@ -11,7 +11,15 @@ function minutes(seconds: number): string {
   return `${Math.round(seconds / 60)} min`;
 }
 
-export function TitleEpisodeList({ title, episodes }: { title: Title; episodes: Episode[] }) {
+export function TitleEpisodeList({
+  title,
+  episodes,
+  savedPositions = {},
+}: {
+  title: Title;
+  episodes: Episode[];
+  savedPositions?: Record<string, number>;
+}) {
   const { current, play, currentTime, didJustFinish, sleepTimer } = usePlayer();
 
   const firstEpisode = episodes[0];
@@ -24,6 +32,12 @@ export function TitleEpisodeList({ title, episodes }: { title: Title; episodes: 
     return "locked";
   }
 
+  function playEpisode(episode: Episode, access: "full" | "preview" | "locked") {
+    const variant = access === "preview" ? "preview" : "full";
+    const resumeAt = variant === "full" ? savedPositions[episode.id] : undefined;
+    play(title, episode, variant, resumeAt);
+  }
+
   // Auto-advance to the next unlocked episode (SPEC.md §3.3). Previews don't
   // advance -- ending a preview should prompt a purchase, not skip ahead.
   // The "end of episode" sleep timer also suppresses this for one ending.
@@ -34,8 +48,8 @@ export function TitleEpisodeList({ title, episodes }: { title: Title; episodes: 
     if (!next) return;
     const access = episodeAccess(next);
     if (access === "locked") return;
-    play(title, next, access === "preview" ? "preview" : "full");
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- episodeAccess/play are stable for this render's inputs
+    playEpisode(next, access);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- episodeAccess/playEpisode are stable for this render's inputs
   }, [didJustFinish]);
 
   return (
@@ -61,11 +75,12 @@ export function TitleEpisodeList({ title, episodes }: { title: Title; episodes: 
 
       {firstEpisode && (
         <div className={styles.cta}>
-          <button
-            className={styles.btn}
-            onClick={() => play(title, firstEpisode, title.is_free ? "full" : "preview")}
-          >
-            {title.is_free ? "Play" : "Play 5-min preview"}
+          <button className={styles.btn} onClick={() => playEpisode(firstEpisode, episodeAccess(firstEpisode))}>
+            {!title.is_free
+              ? "Play 5-min preview"
+              : savedPositions[firstEpisode.id]
+                ? "Resume"
+                : "Play"}
           </button>
         </div>
       )}
@@ -74,18 +89,25 @@ export function TitleEpisodeList({ title, episodes }: { title: Title; episodes: 
         {episodes.map((episode, i) => {
           const access = episodeAccess(episode);
           const isPlaying = playingEpisode?.id === episode.id;
+          const canResume = access === "full" && !!savedPositions[episode.id];
           return (
             <button
               key={episode.id}
               className={styles.part}
               disabled={access === "locked"}
-              onClick={() => play(title, episode, access === "preview" ? "preview" : "full")}
+              onClick={() => playEpisode(episode, access)}
               style={isPlaying ? { borderColor: "#8a1f2d" } : undefined}
             >
               <span className={styles.n}>{String(i + 1).padStart(2, "0")}</span>
               <span>{isPlaying ? "▶ " : ""}{episode.name}</span>
               <span className={styles.muted}>
-                {access === "locked" ? "Locked" : access === "preview" ? "Preview" : minutes(episode.duration_s)}
+                {access === "locked"
+                  ? "Locked"
+                  : access === "preview"
+                    ? "Preview"
+                    : canResume
+                      ? "Resume"
+                      : minutes(episode.duration_s)}
               </span>
             </button>
           );

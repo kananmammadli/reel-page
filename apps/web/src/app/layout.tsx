@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
 import { PlayerProvider } from "@/components/player/PlayerProvider";
 import { MiniPlayer } from "@/components/player/MiniPlayer";
+import { createClient } from "@/lib/supabase/server";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -20,16 +21,30 @@ export const metadata: Metadata = {
   description: "Audio commentaries on films and short stories.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const supabase = await createClient();
+  const { data: userData } = await supabase.auth.getUser();
+
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
       <body>
         <PlayerProvider>
-          <nav style={{ display: "flex", gap: 16, padding: "14px 20px", borderBottom: "1px solid #e4dbd8" }}>
+          <nav
+            style={{
+              display: "flex",
+              gap: 16,
+              padding: "14px 20px",
+              borderBottom: "1px solid #e4dbd8",
+              alignItems: "center",
+            }}
+          >
             <Link href="/" style={{ fontWeight: 700 }}>
               Reel &amp; Page
             </Link>
             <Link href="/catalog">Catalog</Link>
+            <Link href={userData.user ? "/account" : "/auth/sign-in"} style={{ marginLeft: "auto" }}>
+              {userData.user ? "Profile" : "Sign in"}
+            </Link>
           </nav>
           <main style={{ flex: 1 }}>{children}</main>
           <MiniPlayer />
