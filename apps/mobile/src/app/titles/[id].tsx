@@ -6,6 +6,7 @@ import {
   getEpisodes,
   getPlaybackPositionsForTitle,
   getTitle,
+  hasAccess,
   type Episode,
   type Title,
 } from "@reel-and-page/shared";
@@ -18,6 +19,7 @@ import { ThemedView } from "@/components/themed-view";
 import { Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { supabase } from "@/lib/supabase";
+import { isPurchasesConfigured, purchaseProduct } from "@/lib/purchases";
 
 function minutes(seconds: number): string {
   return `${Math.round(seconds / 60)} min`;
@@ -31,7 +33,10 @@ export default function TitleScreen() {
   const [title, setTitle] = useState<Title | null>(null);
   const [episodes, setEpisodes] = useState<Episode[]>([]);
   const [savedPositions, setSavedPositions] = useState<Record<string, number>>({});
+  const [owned, setOwned] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [buying, setBuying] = useState(false);
+  const [buyError, setBuyError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -46,6 +51,7 @@ export default function TitleScreen() {
       const { data: userData } = await supabase.auth.getUser();
       if (!cancelled && userData.user) {
         setSavedPositions(await getPlaybackPositionsForTitle(supabase, eps.map((e) => e.id)));
+        setOwned(await hasAccess(supabase, userData.user.id, { titleId: id }));
       }
     }
     run();
@@ -63,7 +69,7 @@ export default function TitleScreen() {
     const index = episodes.findIndex((e) => e.id === current.episode.id);
     const next = episodes[index + 1];
     if (!next) return;
-    const nextAccess = title.is_free ? "full" : next.id === episodes[0]?.id ? "preview" : "locked";
+    const nextAccess = title.is_free || owned ? "full" : next.id === episodes[0]?.id ? "preview" : "locked";
     if (nextAccess === "locked") return;
     playEpisode(next, nextAccess);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- episodes/title/playEpisode are stable for this render's inputs
@@ -83,8 +89,10 @@ export default function TitleScreen() {
   const totalSeconds = episodes.reduce((sum, e) => sum + e.duration_s, 0);
   const playingEpisode = current?.title.id === title.id ? current.episode : null;
 
+  const hasFullAccess = title.is_free || owned;
+
   function episodeAccess(episode: Episode): "full" | "preview" | "locked" {
-    if (title!.is_free) return "full";
+    if (hasFullAccess) return "full";
     if (episode.id === firstEpisode?.id) return "preview";
     return "locked";
   }
@@ -93,6 +101,19 @@ export default function TitleScreen() {
     const variant = access === "preview" ? "preview" : "full";
     const resumeAt = variant === "full" ? savedPositions[episode.id] : undefined;
     play(title!, episode, variant, resumeAt);
+  }
+
+  async function buy() {
+    setBuyError(null);
+    setBuying(true);
+    try {
+      if (!isPurchasesConfigured()) throw new Error("Purchases aren't set up yet");
+      await purchaseProduct("title", title!.id);
+    } catch (err) {
+      setBuyError(err instanceof Error ? err.message : "Purchase failed");
+    } finally {
+      setBuying(false);
+    }
   }
 
   return (
@@ -123,7 +144,7 @@ export default function TitleScreen() {
           {firstEpisode && (
             <Pressable style={styles.playButton} onPress={() => playEpisode(firstEpisode, episodeAccess(firstEpisode))}>
               <ThemedText style={styles.playButtonText}>
-                {!title.is_free ? "Play 5-min preview" : savedPositions[firstEpisode.id] ? "Resume" : "Play"}
+                {!hasFullAccess ? "Play 5-min preview" : savedPositions[firstEpisode.id] ? "Resume" : "Play"}
               </ThemedText>
             </Pressable>
           )}
@@ -165,15 +186,17 @@ export default function TitleScreen() {
             })}
           </View>
 
-          {!title.is_free && (
+          {!hasFullAccess && (
             <ThemedView type="backgroundElement" style={styles.buybox}>
               <ThemedText>Own this commentary for good</ThemedText>
-              <Pressable style={[styles.playButton, styles.ghostButton]} disabled>
-                <ThemedText>Buy to unlock</ThemedText>
+              <Pressable style={[styles.playButton, styles.ghostButton]} onPress={buy} disabled={buying}>
+                <ThemedText>{buying ? "Buying…" : "Buy to unlock"}</ThemedText>
               </Pressable>
-              <ThemedText type="small" themeColor="textSecondary">
-                Purchases arrive in milestone 4.
-              </ThemedText>
+              {buyError && (
+                <ThemedText type="small" style={styles.error}>
+                  {buyError}
+                </ThemedText>
+              )}
             </ThemedView>
           )}
 
@@ -248,5 +271,8 @@ const styles = StyleSheet.create({
     padding: Spacing.three,
     gap: Spacing.two,
     alignItems: "center",
+  },
+  error: {
+    color: "#8a1f2d",
   },
 });

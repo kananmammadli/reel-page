@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import type { Episode, Title } from "@reel-and-page/shared";
 import { usePlayer } from "@/components/player/PlayerProvider";
 import { TranscriptView } from "@/components/player/TranscriptView";
@@ -15,21 +15,45 @@ export function TitleEpisodeList({
   title,
   episodes,
   savedPositions = {},
+  owned = false,
 }: {
   title: Title;
   episodes: Episode[];
   savedPositions?: Record<string, number>;
+  owned?: boolean;
 }) {
   const { current, play, currentTime, didJustFinish, sleepTimer } = usePlayer();
+  const [buying, setBuying] = useState(false);
+  const [buyError, setBuyError] = useState<string | null>(null);
 
   const firstEpisode = episodes[0];
   const totalSeconds = episodes.reduce((sum, e) => sum + e.duration_s, 0);
   const playingEpisode = current?.title.id === title.id ? current.episode : null;
+  const hasFullAccess = title.is_free || owned;
 
   function episodeAccess(episode: Episode): "full" | "preview" | "locked" {
-    if (title.is_free) return "full";
+    if (hasFullAccess) return "full";
     if (episode.id === firstEpisode?.id) return "preview";
     return "locked";
+  }
+
+  async function buy() {
+    setBuyError(null);
+    setBuying(true);
+    try {
+      const res = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kind: "title", refId: title.id }),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error ?? "Checkout failed");
+      window.location.href = body.url;
+    } catch (err) {
+      setBuyError(err instanceof Error ? err.message : "Checkout failed");
+    } finally {
+      setBuying(false);
+    }
   }
 
   function playEpisode(episode: Episode, access: "full" | "preview" | "locked") {
@@ -76,7 +100,7 @@ export function TitleEpisodeList({
       {firstEpisode && (
         <div className={styles.cta}>
           <button className={styles.btn} onClick={() => playEpisode(firstEpisode, episodeAccess(firstEpisode))}>
-            {!title.is_free
+            {!hasFullAccess
               ? "Play 5-min preview"
               : savedPositions[firstEpisode.id]
                 ? "Resume"
@@ -114,15 +138,17 @@ export function TitleEpisodeList({
         })}
       </div>
 
-      {!title.is_free && (
+      {!hasFullAccess && (
         <div className={styles.buybox}>
           <span>Own this commentary for good</span>
-          <button className={`${styles.btn} ${styles.ghost}`} disabled>
-            Buy to unlock
+          <button className={`${styles.btn} ${styles.ghost}`} onClick={buy} disabled={buying}>
+            {buying ? "Starting checkout…" : "Buy to unlock"}
           </button>
-          <span className={styles.muted} style={{ fontSize: "0.82rem" }}>
-            Purchases arrive in milestone 4.
-          </span>
+          {buyError && (
+            <span className={styles.muted} style={{ fontSize: "0.82rem", color: "#8a1f2d" }}>
+              {buyError}
+            </span>
+          )}
         </div>
       )}
 

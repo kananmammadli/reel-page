@@ -3,7 +3,17 @@ import { router } from "expo-router";
 import { FlatList, Pressable, StyleSheet, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import type { User } from "@supabase/supabase-js";
-import { getContinueListening, requestOtp, signOut, verifyOtp, type ContinueListeningItem } from "@reel-and-page/shared";
+import {
+  getContinueListening,
+  getOwnedCollections,
+  getOwnedTitles,
+  requestOtp,
+  signOut,
+  verifyOtp,
+  type Collection,
+  type ContinueListeningItem,
+  type Title,
+} from "@reel-and-page/shared";
 
 import { PosterCard } from "@/components/catalog/poster-card";
 import { ThemedText } from "@/components/themed-text";
@@ -11,12 +21,17 @@ import { ThemedView } from "@/components/themed-view";
 import { Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { supabase } from "@/lib/supabase";
+import { isPurchasesConfigured, restorePurchases } from "@/lib/purchases";
 
 export default function AccountScreen() {
   const theme = useTheme();
   const [user, setUser] = useState<User | null>(null);
   const [checkingSession, setCheckingSession] = useState(true);
   const [library, setLibrary] = useState<ContinueListeningItem[]>([]);
+  const [ownedTitles, setOwnedTitles] = useState<Title[]>([]);
+  const [ownedCollections, setOwnedCollections] = useState<Collection[]>([]);
+  const [restoring, setRestoring] = useState(false);
+  const [restoreMessage, setRestoreMessage] = useState<string | null>(null);
 
   const [step, setStep] = useState<"email" | "code">("email");
   const [email, setEmail] = useState("");
@@ -37,10 +52,32 @@ export default function AccountScreen() {
 
   useEffect(() => {
     async function run() {
-      setLibrary(user ? await getContinueListening(supabase, 50) : []);
+      if (!user) {
+        setLibrary([]);
+        setOwnedTitles([]);
+        setOwnedCollections([]);
+        return;
+      }
+      setLibrary(await getContinueListening(supabase, 50));
+      setOwnedTitles(await getOwnedTitles(supabase, user.id));
+      setOwnedCollections(await getOwnedCollections(supabase, user.id));
     }
     run();
   }, [user]);
+
+  async function handleRestore() {
+    setRestoreMessage(null);
+    setRestoring(true);
+    try {
+      if (!isPurchasesConfigured()) throw new Error("Purchases aren't set up yet");
+      await restorePurchases();
+      setRestoreMessage("Restored.");
+    } catch (err) {
+      setRestoreMessage(err instanceof Error ? err.message : "Could not restore purchases");
+    } finally {
+      setRestoring(false);
+    }
+  }
 
   async function handleRequestCode() {
     setError(null);
@@ -140,12 +177,48 @@ export default function AccountScreen() {
         <Pressable style={styles.btn} onPress={handleSignOut}>
           <ThemedText style={styles.btnText}>Sign out</ThemedText>
         </Pressable>
+        <Pressable style={[styles.btn, styles.ghostBtn]} onPress={handleRestore} disabled={restoring}>
+          <ThemedText>{restoring ? "Restoring…" : "Restore purchases"}</ThemedText>
+        </Pressable>
+        {restoreMessage && <ThemedText themeColor="textSecondary">{restoreMessage}</ThemedText>}
 
         <ThemedText type="smallBold" style={styles.sectionTitle}>
-          Library
+          Owned commentaries
         </ThemedText>
-        <ThemedText themeColor="textSecondary">
-          Things you&rsquo;ve started. Owned commentaries and club membership arrive in milestone 4.
+        {ownedTitles.length === 0 && ownedCollections.length === 0 ? (
+          <ThemedText themeColor="textSecondary" style={styles.empty}>
+            Nothing purchased yet.
+          </ThemedText>
+        ) : (
+          <FlatList
+            horizontal
+            data={[...ownedCollections.map((c) => ({ collection: c })), ...ownedTitles.map((t) => ({ title: t }))]}
+            keyExtractor={(item) => ("collection" in item ? item.collection.id : item.title.id)}
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.rail}
+            renderItem={({ item }) =>
+              "collection" in item ? (
+                <Pressable style={styles.card} onPress={() => router.push(`/titles/${item.collection.id}`)}>
+                  <View style={[styles.collectionPoster, { backgroundColor: "#3d3a52" }]}>
+                    <ThemedText type="smallBold" style={styles.posterLabel}>
+                      {item.collection.name}
+                    </ThemedText>
+                  </View>
+                </Pressable>
+              ) : (
+                <Pressable style={styles.card} onPress={() => router.push(`/titles/${item.title.id}`)}>
+                  <PosterCard id={item.title.id} title={item.title.title} year={item.title.year} type={item.title.type} posterUrl={item.title.poster_url} />
+                  <ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
+                    {item.title.creator}
+                  </ThemedText>
+                </Pressable>
+              )
+            }
+          />
+        )}
+
+        <ThemedText type="smallBold" style={styles.sectionTitle}>
+          Continue listening
         </ThemedText>
 
         {library.length === 0 ? (
@@ -234,5 +307,14 @@ const styles = StyleSheet.create({
   card: {
     width: 130,
     gap: Spacing.one,
+  },
+  collectionPoster: {
+    aspectRatio: 2 / 3,
+    borderRadius: 8,
+    padding: 10,
+    justifyContent: "flex-end",
+  },
+  posterLabel: {
+    color: "#fff8f2",
   },
 });

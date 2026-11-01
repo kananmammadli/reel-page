@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "./database.types";
+import type { Collection, Title } from "./catalog";
 
 type Client = SupabaseClient<Database>;
 
@@ -50,4 +51,40 @@ async function hasAccessViaCollection(client: Client, userId: string, titleId: s
     .maybeSingle();
   if (error) throw error;
   return !!data;
+}
+
+// Library screen content: titles/collections the user directly owns.
+// Titles unlocked only via owning a containing collection aren't listed
+// individually here -- the collection itself is (SPEC.md §3.4 "owned
+// commentaries" + "collections").
+export async function getOwnedTitles(client: Client, userId: string): Promise<Title[]> {
+  const { data: entitlements, error } = await client.from("entitlements").select("ref_id").eq("user_id", userId).eq("kind", "title");
+  if (error) throw error;
+  if (!entitlements || entitlements.length === 0) return [];
+
+  const { data, error: titlesError } = await client
+    .from("titles")
+    .select("*")
+    .in(
+      "id",
+      entitlements.map((e) => e.ref_id),
+    );
+  if (titlesError) throw titlesError;
+  return data;
+}
+
+export async function getOwnedCollections(client: Client, userId: string): Promise<Collection[]> {
+  const { data: entitlements, error } = await client.from("entitlements").select("ref_id").eq("user_id", userId).eq("kind", "collection");
+  if (error) throw error;
+  if (!entitlements || entitlements.length === 0) return [];
+
+  const { data, error: collectionsError } = await client
+    .from("collections")
+    .select("*")
+    .in(
+      "id",
+      entitlements.map((e) => e.ref_id),
+    );
+  if (collectionsError) throw collectionsError;
+  return data;
 }

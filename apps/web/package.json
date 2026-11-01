@@ -15,7 +15,8 @@
     "@supabase/ssr": "^0.12.7",
     "next": "16.4.3",
     "react": "19.3.0",
-    "react-dom": "19.3.0"
+    "react-dom": "19.3.0",
+    "stripe": "^23.1.0"
   },
   "devDependencies": {
     "@types/node": "^20",

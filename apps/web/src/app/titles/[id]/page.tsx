@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getEpisodes, getPlaybackPositionsForTitle, getTitle } from "@reel-and-page/shared";
+import { getEpisodes, getPlaybackPositionsForTitle, getTitle, hasAccess } from "@reel-and-page/shared";
 import { createClient } from "@/lib/supabase/server";
 import { TitleEpisodeList } from "@/components/catalog/TitleEpisodeList";
 
@@ -11,12 +11,15 @@ export default async function TitlePage({ params }: { params: Promise<{ id: stri
 
   const episodes = await getEpisodes(supabase, id);
   const { data: userData } = await supabase.auth.getUser();
-  const savedPositions = userData.user
-    ? await getPlaybackPositionsForTitle(
-        supabase,
-        episodes.map((e) => e.id),
-      )
-    : {};
+  const [savedPositions, owned] = userData.user
+    ? await Promise.all([
+        getPlaybackPositionsForTitle(
+          supabase,
+          episodes.map((e) => e.id),
+        ),
+        hasAccess(supabase, userData.user.id, { titleId: id }),
+      ])
+    : [{}, false];
 
-  return <TitleEpisodeList title={title} episodes={episodes} savedPositions={savedPositions} />;
+  return <TitleEpisodeList title={title} episodes={episodes} savedPositions={savedPositions} owned={owned} />;
 }

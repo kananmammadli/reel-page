@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { getContinueListening } from "@reel-and-page/shared";
+import { getContinueListening, getOwnedCollections, getOwnedTitles } from "@reel-and-page/shared";
 import { createClient } from "@/lib/supabase/server";
 import { PosterCard } from "@/components/catalog/PosterCard";
 import { SignOutButton } from "@/components/auth/SignOutButton";
@@ -13,7 +13,11 @@ export default async function AccountPage() {
   const { data: userData } = await supabase.auth.getUser();
   if (!userData.user) redirect("/auth/sign-in");
 
-  const library = await getContinueListening(supabase, 50);
+  const [continueListening, ownedTitles, ownedCollections] = await Promise.all([
+    getContinueListening(supabase, 50),
+    getOwnedTitles(supabase, userData.user.id),
+    getOwnedCollections(supabase, userData.user.id),
+  ]);
 
   return (
     <div className={styles.main}>
@@ -22,15 +26,35 @@ export default async function AccountPage() {
       <SignOutButton />
 
       <section>
-        <h2 className={styles.sectionTitle}>Library</h2>
-        <p className={styles.empty}>
-          Things you&rsquo;ve started. Owned commentaries and club membership arrive in milestone 4.
-        </p>
-        {library.length === 0 ? (
+        <h2 className={styles.sectionTitle}>Owned commentaries</h2>
+        {ownedTitles.length === 0 && ownedCollections.length === 0 ? (
+          <p className={styles.empty}>Nothing purchased yet.</p>
+        ) : (
+          <div className={styles.rail}>
+            {ownedCollections.map((collection) => (
+              <Link key={collection.id} href={`/collections/${collection.id}`} className={styles.card}>
+                <div className={styles.poster} style={{ background: "linear-gradient(160deg, #3d3a52, #15131f)" }}>
+                  <span className={styles.posterTitle}>{collection.name}</span>
+                </div>
+              </Link>
+            ))}
+            {ownedTitles.map((title) => (
+              <Link key={title.id} href={`/titles/${title.id}`} className={styles.card}>
+                <PosterCard id={title.id} title={title.title} year={title.year} type={title.type} posterUrl={title.poster_url} />
+                <div className={styles.cap}>{title.creator}</div>
+              </Link>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section>
+        <h2 className={styles.sectionTitle}>Continue listening</h2>
+        {continueListening.length === 0 ? (
           <p className={styles.empty}>Nothing yet -- start an episode and it&rsquo;ll show up here.</p>
         ) : (
           <div className={styles.rail}>
-            {library.map((item) => (
+            {continueListening.map((item) => (
               <Link key={item.episode.id} href={`/titles/${item.title.id}`} className={styles.card}>
                 <PosterCard
                   id={item.title.id}
