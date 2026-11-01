@@ -8,8 +8,12 @@ export type ClubMonth = Tables<"club_months">;
 export type ClubRelease = Tables<"club_releases">;
 export type ChatMessage = Tables<"chat_messages">;
 export type Question = Tables<"questions">;
+export type Profile = Tables<"profiles">;
 
 export type ClubMonthWithTitle = ClubMonth & { title: Title };
+export type Author = Pick<Profile, "display_name" | "role"> | null;
+export type ChatMessageWithAuthor = ChatMessage & { author: Author };
+export type QuestionWithAuthor = Question & { author: Author };
 
 function currentMonthStart(): string {
   const now = new Date();
@@ -26,6 +30,23 @@ export async function getClubMonth(client: Client, id: string): Promise<ClubMont
   const { data, error } = await client.from("club_months").select("*, title:titles(*)").eq("id", id).maybeSingle();
   if (error) throw error;
   return data as ClubMonthWithTitle | null;
+}
+
+export async function getOwnedClubMonths(client: Client, userId: string): Promise<ClubMonthWithTitle[]> {
+  const { data: entitlements, error } = await client.from("entitlements").select("ref_id").eq("user_id", userId).eq("kind", "club_month");
+  if (error) throw error;
+  if (!entitlements || entitlements.length === 0) return [];
+
+  const { data, error: monthsError } = await client
+    .from("club_months")
+    .select("*, title:titles(*)")
+    .in(
+      "id",
+      entitlements.map((e) => e.ref_id),
+    )
+    .order("month", { ascending: false });
+  if (monthsError) throw monthsError;
+  return data as unknown as ClubMonthWithTitle[];
 }
 
 export async function getClubReleases(client: Client, clubMonthId: string): Promise<ClubRelease[]> {
@@ -58,15 +79,15 @@ export function getClubEpisodeAccess(release: ClubRelease | undefined, hasEntitl
   return hasEntitlement ? "full" : "not-a-member";
 }
 
-export async function getChatMessages(client: Client, clubMonthId: string): Promise<ChatMessage[]> {
+export async function getChatMessages(client: Client, clubMonthId: string): Promise<ChatMessageWithAuthor[]> {
   const { data, error } = await client
     .from("chat_messages")
-    .select("*")
+    .select("*, author:profiles(display_name, role)")
     .eq("club_month_id", clubMonthId)
     .is("deleted_at", null)
     .order("created_at", { ascending: true });
   if (error) throw error;
-  return data;
+  return data as unknown as ChatMessageWithAuthor[];
 }
 
 export async function sendChatMessage(client: Client, input: { clubMonthId: string; userId: string; body: string; replyTo?: string }): Promise<void> {
@@ -76,10 +97,14 @@ export async function sendChatMessage(client: Client, input: { clubMonthId: stri
   if (error) throw error;
 }
 
-export async function getQuestions(client: Client, clubMonthId: string): Promise<Question[]> {
-  const { data, error } = await client.from("questions").select("*").eq("club_month_id", clubMonthId).order("created_at", { ascending: false });
+export async function getQuestions(client: Client, clubMonthId: string): Promise<QuestionWithAuthor[]> {
+  const { data, error } = await client
+    .from("questions")
+    .select("*, author:profiles(display_name, role)")
+    .eq("club_month_id", clubMonthId)
+    .order("created_at", { ascending: false });
   if (error) throw error;
-  return data;
+  return data as unknown as QuestionWithAuthor[];
 }
 
 export async function submitQuestion(client: Client, input: { clubMonthId: string; userId: string; body: string }): Promise<void> {

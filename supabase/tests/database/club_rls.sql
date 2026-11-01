@@ -9,15 +9,17 @@
 begin;
 create extension if not exists pgtap;
 
-select plan(26);
+select plan(29);
 
 insert into auth.users (id, email) values
   ('a0000000-0000-0000-0000-000000000001', 'host@example.com'),
   ('a0000000-0000-0000-0000-000000000002', 'member-a@example.com'),
   ('a0000000-0000-0000-0000-000000000003', 'member-b@example.com'),
-  ('a0000000-0000-0000-0000-000000000004', 'outsider@example.com');
+  ('a0000000-0000-0000-0000-000000000004', 'outsider@example.com'),
+  ('a0000000-0000-0000-0000-000000000005', 'suspended-member@example.com');
 
 update profiles set role = 'host' where id = 'a0000000-0000-0000-0000-000000000001';
+update profiles set suspended_at = now() where id = 'a0000000-0000-0000-0000-000000000005';
 
 insert into titles (id, type, title, creator, is_free, published_at) values
   ('a0000000-0000-0000-0000-000000000010', 'film', 'Club Title', 'Someone', false, now());
@@ -32,7 +34,8 @@ insert into club_months (id, month, title_id) values
 insert into entitlements (user_id, kind, ref_id, source, external_id) values
   ('a0000000-0000-0000-0000-000000000002', 'club_month', 'a0000000-0000-0000-0000-000000000020', 'stripe', 'ext_a_current'),
   ('a0000000-0000-0000-0000-000000000002', 'club_month', 'a0000000-0000-0000-0000-000000000021', 'stripe', 'ext_a_past'),
-  ('a0000000-0000-0000-0000-000000000003', 'club_month', 'a0000000-0000-0000-0000-000000000020', 'stripe', 'ext_b_current');
+  ('a0000000-0000-0000-0000-000000000003', 'club_month', 'a0000000-0000-0000-0000-000000000020', 'stripe', 'ext_b_current'),
+  ('a0000000-0000-0000-0000-000000000005', 'club_month', 'a0000000-0000-0000-0000-000000000020', 'stripe', 'ext_suspended_current');
 
 insert into chat_messages (id, club_month_id, user_id, body) values
   ('a0000000-0000-0000-0000-000000000030', 'a0000000-0000-0000-0000-000000000020', 'a0000000-0000-0000-0000-000000000002', 'hi from A');
@@ -117,6 +120,27 @@ select throws_ok(
   $$ insert into chat_messages (club_month_id, user_id, body) values ('a0000000-0000-0000-0000-000000000020', 'a0000000-0000-0000-0000-000000000004', 'gatecrash') $$,
   'new row violates row-level security policy for table "chat_messages"',
   'a non-member cannot post in the club chat'
+);
+
+set local role authenticated;
+set local request.jwt.claims to '{"sub":"a0000000-0000-0000-0000-000000000005","role":"authenticated"}';
+
+select results_eq(
+  $$ select count(*)::int from chat_messages where id = 'a0000000-0000-0000-0000-000000000030' $$,
+  $$ values (1) $$,
+  'a suspended member can still read the chat they already had access to'
+);
+
+select throws_ok(
+  $$ insert into chat_messages (club_month_id, user_id, body) values ('a0000000-0000-0000-0000-000000000020', 'a0000000-0000-0000-0000-000000000005', 'should not land') $$,
+  'new row violates row-level security policy for table "chat_messages"',
+  'a suspended member cannot post a new chat message'
+);
+
+select throws_ok(
+  $$ insert into questions (club_month_id, user_id, body) values ('a0000000-0000-0000-0000-000000000020', 'a0000000-0000-0000-0000-000000000005', 'should not land') $$,
+  'new row violates row-level security policy for table "questions"',
+  'a suspended member cannot ask a new question'
 );
 
 set local role authenticated;
