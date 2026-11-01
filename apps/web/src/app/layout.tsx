@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
+import { isHost } from "@reel-and-page/shared";
 import { PlayerProvider } from "@/components/player/PlayerProvider";
 import { MiniPlayer } from "@/components/player/MiniPlayer";
 import { createClient } from "@/lib/supabase/server";
@@ -24,6 +25,7 @@ export const metadata: Metadata = {
 export default async function RootLayout({ children }: LayoutProps<"/">) {
   const supabase = await createClient();
   const { data: userData } = await supabase.auth.getUser();
+  const host = userData.user ? await isHost(supabase, userData.user.id) : false;
 
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
@@ -42,6 +44,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
               Reel &amp; Page
             </Link>
             <Link href="/catalog">Catalog</Link>
+            {host && <Link href="/admin">Admin</Link>}
             <Link href={userData.user ? "/account" : "/auth/sign-in"} style={{ marginLeft: "auto" }}>
               {userData.user ? "Profile" : "Sign in"}
             </Link>

@@ -1,0 +1,194 @@
+.main {
+  padding: 24px 20px 60px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-width: 760px;
+}
+
+.nav {
+  display: flex;
+  gap: 16px;
+  padding: 10px 20px;
+  background: #f3ece9;
+  font-size: 0.9rem;
+}
+
+.nav a {
+  color: #4a3f42;
+}
+
+.card {
+  display: block;
+  padding: 16px;
+  border: 1px solid #e4dbd8;
+  border-radius: 10px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border: 1px solid #e4dbd8;
+  border-radius: 8px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.rowThumb {
+  width: 40px;
+  height: 60px;
+  border-radius: 4px;
+  flex: none;
+  object-fit: cover;
+  background: #e4dbd8;
+}
+
+.rowMain {
+  flex: 1;
+  min-width: 0;
+}
+
+.rowMeta {
+  color: #6f6268;
+  font-size: 0.85rem;
+}
+
+.badge {
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #e4dbd8;
+  color: #4a3f42;
+}
+
+.badgeLive {
+  background: #2f3b2c;
+  color: #e8f3e4;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.field label {
+  font-size: 0.85rem;
+  color: #6f6268;
+}
+
+.field input[type="text"],
+.field input[type="number"],
+.field input[type="file"],
+.field textarea,
+.field select {
+  padding: 8px 10px;
+  border: 1px solid #e4dbd8;
+  border-radius: 6px;
+  font: inherit;
+}
+
+.checkboxRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.button {
+  background: #8a1f2d;
+  color: #fffaf6;
+  border: none;
+  border-radius: 999px;
+  padding: 10px 20px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.ghostButton {
+  background: transparent;
+  border: 1px solid #e4dbd8;
+  border-radius: 999px;
+  padding: 10px 20px;
+  cursor: pointer;
+}
+
+.dangerButton {
+  background: transparent;
+  color: #8a1f2d;
+  border: 1px solid #8a1f2d;
+  border-radius: 999px;
+  padding: 10px 20px;
+  cursor: pointer;
+}
+
+.error {
+  color: #8a1f2d;
+  font-size: 0.9rem;
+}
+
+.hint {
+  color: #6f6268;
+  font-size: 0.8rem;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.table th,
+.table td {
+  text-align: left;
+  padding: 6px 10px;
+  border-bottom: 1px solid #e4dbd8;
+}
+
+.statGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+.stat {
+  border: 1px solid #e4dbd8;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.statValue {
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+
+.statLabel {
+  color: #6f6268;
+  font-size: 0.8rem;
+}

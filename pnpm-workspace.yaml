@@ -6,3 +6,5 @@ allowBuilds:
   esbuild: true
   sharp: false
   unrs-resolver: false
+  ffmpeg-static: true
+  ffprobe-static: true
