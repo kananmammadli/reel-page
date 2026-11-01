@@ -91,7 +91,69 @@ async function main() {
       const { status, body } = await getAudioUrl(paidEpisode.id, "full", userJwt);
       assert(status === 200 && typeof body.url === "string", `paid title is playable once entitled (got ${status}: ${JSON.stringify(body)})`);
     }
+
+    // Isolated club fixtures (a fresh title/episode) so this doesn't
+    // interact with the direct title entitlement granted just above.
+    const clubTitle = await adminRequest("/rest/v1/titles", {
+      method: "POST",
+      headers: { Prefer: "return=representation" },
+      body: JSON.stringify({ type: "film", title: "Club Gate Test Title", creator: "Someone", is_free: false, published_at: new Date().toISOString() }),
+    });
+    // Reuses an audio file that's already known to exist in storage --
+    // this test is about the access gate, not about a real club recording.
+    const [existingAudio] = await adminRequest(`/rest/v1/episodes?select=audio_path&id=eq.${freeEpisode.id}`);
+    const clubEpisode = await adminRequest("/rest/v1/episodes", {
+      method: "POST",
+      headers: { Prefer: "return=representation" },
+      body: JSON.stringify({ title_id: clubTitle[0].id, position: 1, name: "Club Ep 1", duration_s: 60, audio_path: existingAudio.audio_path }),
+    });
+    const clubMonth = await adminRequest("/rest/v1/club_months", {
+      method: "POST",
+      headers: { Prefer: "return=representation" },
+      body: JSON.stringify({ month: "2020-01-01", title_id: clubTitle[0].id }),
+    });
+    await fetch(`${BASE_URL}/rest/v1/club_releases`, {
+      method: "POST",
+      headers: { apikey: SERVICE_ROLE_KEY, Authorization: `Bearer ${SERVICE_ROLE_KEY}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        club_month_id: clubMonth[0].id,
+        episode_id: clubEpisode[0].id,
+        release_at: new Date(Date.now() + 86400000).toISOString(), // tomorrow
+      }),
+    });
+    await fetch(`${BASE_URL}/rest/v1/entitlements`, {
+      method: "POST",
+      headers: { apikey: SERVICE_ROLE_KEY, Authorization: `Bearer ${SERVICE_ROLE_KEY}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ user_id: user.id, kind: "club_month", ref_id: clubMonth[0].id, source: "stripe", external_id: `club_gate_test_${Date.now()}` }),
+    });
+
+    console.log("=== club episode, full, entitled but not yet released ===");
+    {
+      const { status, body } = await getAudioUrl(clubEpisode[0].id, "full", userJwt);
+      assert(status === 403, `an unreleased club episode is denied even to an entitled member (got ${status}: ${JSON.stringify(body)})`);
+    }
+
+    await adminRequest(`/rest/v1/club_releases?episode_id=eq.${clubEpisode[0].id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ release_at: new Date(Date.now() - 1000).toISOString() }),
+    });
+
+    console.log("=== club episode, full, entitled AND released ===");
+    {
+      const { status, body } = await getAudioUrl(clubEpisode[0].id, "full", userJwt);
+      assert(status === 200 && typeof body.url === "string", `a released club episode is playable for an entitled member (got ${status}: ${JSON.stringify(body)})`);
+    }
+
+    console.log("=== club episode, full, released but anonymous ===");
+    {
+      const { status, body } = await getAudioUrl(clubEpisode[0].id, "full", null);
+      assert(status === 403, `a released club episode is still denied to a non-member (got ${status}: ${JSON.stringify(body)})`);
+    }
   } finally {
+    // club_months has a unique constraint on `month` -- clean up so a
+    // re-run doesn't collide with this run's fixture row.
+    await adminRequest(`/rest/v1/club_months?month=eq.2020-01-01`, { method: "DELETE" });
+    await adminRequest(`/rest/v1/titles?title=eq.${encodeURIComponent("Club Gate Test Title")}`, { method: "DELETE" });
     await adminRequest(`/auth/v1/admin/users/${user.id}`, { method: "DELETE" });
   }
 

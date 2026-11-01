@@ -22,6 +22,16 @@ function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 }
 
+// The club's title/month rotates (see club_months), but a charge doesn't
+// carry which month it was for -- it was for whichever month is open at
+// the moment the charge succeeds.
+async function getCurrentClubMonthId(supabase: ReturnType<typeof createClient>): Promise<string | null> {
+  const now = new Date();
+  const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString().slice(0, 10);
+  const { data } = await supabase.from("club_months").select("id").eq("month", monthStart).maybeSingle();
+  return data?.id ?? null;
+}
+
 function mapSubscriptionStatus(stripeStatus: Stripe.Subscription.Status): "active" | "canceled" | "past_due" | "expired" {
   switch (stripeStatus) {
     case "active":
@@ -135,11 +145,22 @@ Deno.serve(async (req) => {
       const subscription = await stripe.subscriptions.retrieve(subscriptionId);
       const userId = subscription.metadata?.user_id;
       if (userId) {
+        // This specific month's entitlement is what keeps that month's
+        // chat/episodes accessible even after the subscription itself is
+        // later canceled (SPEC.md §3.4) -- every renewal grants one.
+        const clubMonthId = await getCurrentClubMonthId(supabase);
+        if (clubMonthId) {
+          await supabase.from("entitlements").upsert(
+            { user_id: userId, kind: "club_month", ref_id: clubMonthId, source: "stripe", external_id: invoice.id },
+            { onConflict: "source,external_id", ignoreDuplicates: true },
+          );
+        }
+
         await supabase.from("payments").upsert(
           {
             user_id: userId,
             kind: "club_month",
-            ref_id: null,
+            ref_id: clubMonthId,
             source: "stripe",
             external_id: invoice.id,
             amount_cents: invoice.amount_paid,

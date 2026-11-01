@@ -7,7 +7,7 @@ export type QueryResult = { data: unknown; error: unknown };
 // awaited (PostgrestFilterBuilder is a thenable, not a Promise).
 export function fakeQuery(result: QueryResult) {
   const builder: Record<string, unknown> = {};
-  const chainMethods = ["select", "eq", "in", "order", "or", "limit", "upsert"];
+  const chainMethods = ["select", "eq", "in", "is", "order", "or", "limit", "upsert", "insert", "delete"];
   for (const method of chainMethods) {
     builder[method] = vi.fn(() => builder);
   }

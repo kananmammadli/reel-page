@@ -59,6 +59,16 @@ async function verifySignature(header: string | null, rawBody: string, secret: s
   return diff === 0;
 }
 
+// The club's title/month rotates (see club_months), but a charge doesn't
+// carry which month it was for -- it was for whichever month is open at
+// the moment the charge succeeds.
+async function getCurrentClubMonthId(supabase: ReturnType<typeof createClient>): Promise<string | null> {
+  const now = new Date();
+  const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString().slice(0, 10);
+  const { data } = await supabase.from("club_months").select("id").eq("month", monthStart).maybeSingle();
+  return data?.id ?? null;
+}
+
 function parseProductRef(productId: string): { kind: "title" | "collection"; refId: string } | null {
   const [kind, refId] = productId.split(":");
   if ((kind === "title" || kind === "collection") && refId) return { kind, refId };
@@ -123,7 +133,19 @@ Deno.serve(async (req) => {
   // Club subscription lifecycle (product isn't a title:/collection: one-time purchase).
   if (["INITIAL_PURCHASE", "RENEWAL", "CANCELLATION", "EXPIRATION", "UNCANCELLATION"].includes(event.type)) {
     const status = event.type === "CANCELLATION" || event.type === "EXPIRATION" ? "canceled" : "active";
-    if (event.type === "INITIAL_PURCHASE" || event.type === "RENEWAL") await recordPayment("club_month", null);
+    if (event.type === "INITIAL_PURCHASE" || event.type === "RENEWAL") {
+      // This specific month's entitlement is what keeps that month's
+      // chat/episodes accessible even after the subscription itself is
+      // later canceled (SPEC.md §3.4) -- every renewal grants one.
+      const clubMonthId = await getCurrentClubMonthId(supabase);
+      if (clubMonthId) {
+        await supabase.from("entitlements").upsert(
+          { user_id: userId, kind: "club_month", ref_id: clubMonthId, source, external_id: event.transaction_id },
+          { onConflict: "source,external_id", ignoreDuplicates: true },
+        );
+      }
+      await recordPayment("club_month", clubMonthId);
+    }
     const currentPeriodEnd = event.expiration_at_ms ? new Date(event.expiration_at_ms).toISOString() : null;
 
     const { data: existing, error: lookupError } = await supabase

@@ -23,6 +23,147 @@ export type Database = {
   };
   public: {
     Tables: {
+      blocks: {
+        Row: {
+          blocked_user_id: string;
+          created_at: string;
+          user_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          blocked_user_id: string;
+          created_at?: string;
+          user_id: string;
+        };
+        Update: {
+          blocked_user_id?: string;
+          created_at?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
+      chat_messages: {
+        Row: {
+          body: string;
+          club_month_id: string;
+          created_at: string;
+          deleted_at: string | null;
+          id: string;
+          pinned: boolean;
+          reply_to: string | null;
+          user_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          body: string;
+          club_month_id: string;
+          created_at?: string;
+          deleted_at?: string | null;
+          id?: string;
+          pinned?: boolean;
+          reply_to?: string | null;
+          user_id: string;
+        };
+        Update: {
+          body?: string;
+          club_month_id?: string;
+          created_at?: string;
+          deleted_at?: string | null;
+          id?: string;
+          pinned?: boolean;
+          reply_to?: string | null;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "chat_messages_club_month_id_fkey";
+            columns: ["club_month_id"];
+            isOneToOne: false;
+            referencedRelation: "club_months";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "chat_messages_reply_to_fkey";
+            columns: ["reply_to"];
+            isOneToOne: false;
+            referencedRelation: "chat_messages";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      club_months: {
+        Row: {
+          created_at: string;
+          id: string;
+          month: string;
+          pitch: string | null;
+          price_ref: string | null;
+          title_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          id?: string;
+          month: string;
+          pitch?: string | null;
+          price_ref?: string | null;
+          title_id: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          month?: string;
+          pitch?: string | null;
+          price_ref?: string | null;
+          title_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "club_months_title_id_fkey";
+            columns: ["title_id"];
+            isOneToOne: false;
+            referencedRelation: "titles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      club_releases: {
+        Row: {
+          club_month_id: string;
+          episode_id: string;
+          notified_at: string | null;
+          release_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          club_month_id: string;
+          episode_id: string;
+          notified_at?: string | null;
+          release_at: string;
+        };
+        Update: {
+          club_month_id?: string;
+          episode_id?: string;
+          notified_at?: string | null;
+          release_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "club_releases_club_month_id_fkey";
+            columns: ["club_month_id"];
+            isOneToOne: false;
+            referencedRelation: "club_months";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "club_releases_episode_id_fkey";
+            columns: ["episode_id"];
+            isOneToOne: false;
+            referencedRelation: "episodes";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       collection_titles: {
         Row: {
           collection_id: string;
@@ -225,6 +366,7 @@ export type Database = {
           display_name: string | null;
           id: string;
           role: string;
+          suspended_at: string | null;
         };
         ComputedFields: never;
         Insert: {
@@ -232,14 +374,113 @@ export type Database = {
           display_name?: string | null;
           id: string;
           role?: string;
+          suspended_at?: string | null;
         };
         Update: {
           created_at?: string;
           display_name?: string | null;
           id?: string;
           role?: string;
+          suspended_at?: string | null;
         };
         Relationships: [];
+      };
+      push_tokens: {
+        Row: {
+          created_at: string;
+          token: string;
+          user_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          token: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          token?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
+      questions: {
+        Row: {
+          answer: string | null;
+          answered_at: string | null;
+          body: string;
+          club_month_id: string;
+          created_at: string;
+          id: string;
+          published: boolean;
+          user_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          answer?: string | null;
+          answered_at?: string | null;
+          body: string;
+          club_month_id: string;
+          created_at?: string;
+          id?: string;
+          published?: boolean;
+          user_id: string;
+        };
+        Update: {
+          answer?: string | null;
+          answered_at?: string | null;
+          body?: string;
+          club_month_id?: string;
+          created_at?: string;
+          id?: string;
+          published?: boolean;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "questions_club_month_id_fkey";
+            columns: ["club_month_id"];
+            isOneToOne: false;
+            referencedRelation: "club_months";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      reports: {
+        Row: {
+          created_at: string;
+          id: string;
+          message_id: string;
+          reason: string;
+          reporter_id: string;
+          status: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          id?: string;
+          message_id: string;
+          reason: string;
+          reporter_id: string;
+          status?: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          message_id?: string;
+          reason?: string;
+          reporter_id?: string;
+          status?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "reports_message_id_fkey";
+            columns: ["message_id"];
+            isOneToOne: false;
+            referencedRelation: "chat_messages";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       subscriptions: {
         Row: {
@@ -321,6 +562,7 @@ export type Database = {
     };
     Functions: {
       is_host: { Args: Record<PropertyKey, never>; Returns: boolean };
+      notify_club_releases: { Args: Record<PropertyKey, never>; Returns: undefined };
     };
     Enums: {
       entitlement_kind: "title" | "collection" | "club_month";

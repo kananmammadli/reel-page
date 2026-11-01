@@ -35,16 +35,18 @@ function toPublicUrl(url: string): string {
 }
 
 // Verifies the caller's JWT server-side (never trusts a client-supplied
-// user id) and checks for a direct title entitlement or one via an owned
-// collection. Mirrors packages/shared/src/entitlements.ts's hasAccess().
-async function hasAccess(supabase: SupabaseClient, req: Request, titleId: string): Promise<boolean> {
+// user id). Shared by both access checks below.
+async function getAuthenticatedUserId(supabase: SupabaseClient, req: Request): Promise<string | null> {
   const jwt = req.headers.get("Authorization")?.replace(/^Bearer\s+/i, "");
-  if (!jwt) return false;
-
+  if (!jwt) return null;
   const { data: userData, error: userError } = await supabase.auth.getUser(jwt);
-  if (userError || !userData.user) return false;
-  const userId = userData.user.id;
+  if (userError || !userData.user) return null;
+  return userData.user.id;
+}
 
+// Checks for a direct title entitlement or one via an owned collection.
+// Mirrors packages/shared/src/entitlements.ts's hasAccess().
+async function hasAccess(supabase: SupabaseClient, userId: string, titleId: string): Promise<boolean> {
   const { data: direct } = await supabase
     .from("entitlements")
     .select("id")
@@ -68,6 +70,27 @@ async function hasAccess(supabase: SupabaseClient, req: Request, titleId: string
     )
     .maybeSingle();
   return !!viaCollection;
+}
+
+// A club episode is playable only once its release_at has passed (true for
+// everyone, paying members included -- "unreleased episodes show their
+// release date", SPEC.md §3.5) AND the caller holds that specific month's
+// club_month entitlement, which (unlike `subscriptions`) survives
+// cancellation -- "every month paid for stays accessible", SPEC.md §3.4.
+// Mirrors packages/shared/src/club.ts's getClubEpisodeAccess().
+async function hasClubAccess(supabase: SupabaseClient, userId: string, episodeId: string): Promise<boolean> {
+  const { data: release } = await supabase.from("club_releases").select("club_month_id, release_at").eq("episode_id", episodeId).maybeSingle();
+  if (!release) return false;
+  if (new Date(release.release_at) > new Date()) return false;
+
+  const { data: entitlement } = await supabase
+    .from("entitlements")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("kind", "club_month")
+    .eq("ref_id", release.club_month_id)
+    .maybeSingle();
+  return !!entitlement;
 }
 
 Deno.serve(async (req) => {
@@ -107,8 +130,12 @@ Deno.serve(async (req) => {
   if (variant === "preview") {
     path = episode.preview_path;
   } else {
-    if (!title.is_free && !(await hasAccess(supabase, req, title.id))) {
-      return jsonResponse({ error: "Purchase required" }, 403);
+    if (!title.is_free) {
+      const userId = await getAuthenticatedUserId(supabase, req);
+      const unlocked = !!userId && ((await hasAccess(supabase, userId, title.id)) || (await hasClubAccess(supabase, userId, episodeId)));
+      if (!unlocked) {
+        return jsonResponse({ error: "Purchase required" }, 403);
+      }
     }
     path = episode.audio_path;
   }
