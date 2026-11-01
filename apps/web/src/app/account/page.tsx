@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { getContinueListening, getOwnedCollections, getOwnedTitles } from "@reel-and-page/shared";
+import { getContinueListening, getOwnedClubMonths, getOwnedCollections, getOwnedTitles } from "@reel-and-page/shared";
 import { createClient } from "@/lib/supabase/server";
 import { PosterCard } from "@/components/catalog/PosterCard";
 import { SignOutButton } from "@/components/auth/SignOutButton";
@@ -13,10 +13,11 @@ export default async function AccountPage() {
   const { data: userData } = await supabase.auth.getUser();
   if (!userData.user) redirect("/auth/sign-in");
 
-  const [continueListening, ownedTitles, ownedCollections] = await Promise.all([
+  const [continueListening, ownedTitles, ownedCollections, ownedClubMonths] = await Promise.all([
     getContinueListening(supabase, 50),
     getOwnedTitles(supabase, userData.user.id),
     getOwnedCollections(supabase, userData.user.id),
+    getOwnedClubMonths(supabase, userData.user.id),
   ]);
 
   return (
@@ -47,6 +48,22 @@ export default async function AccountPage() {
           </div>
         )}
       </section>
+
+      {ownedClubMonths.length > 0 && (
+        <section>
+          <h2 className={styles.sectionTitle}>Club months</h2>
+          <div className={styles.rail}>
+            {ownedClubMonths.map((month) => (
+              <Link key={month.id} href={`/club/${month.id}`} className={styles.card}>
+                <div className={styles.poster} style={{ background: "linear-gradient(160deg, #3d3a52, #15131f)" }}>
+                  <span className={styles.posterLabel}>{month.month}</span>
+                  <span className={styles.posterTitle}>{month.title.title}</span>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section>
         <h2 className={styles.sectionTitle}>Continue listening</h2>

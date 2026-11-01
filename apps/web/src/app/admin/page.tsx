@@ -14,6 +14,10 @@ export default function AdminHome() {
           Collections
           <div className={styles.rowMeta}>Group titles into a purchasable collection.</div>
         </Link>
+        <Link className={styles.card} href="/admin/club">
+          Club
+          <div className={styles.rowMeta}>Schedule the month, answer questions, moderate chat.</div>
+        </Link>
         <Link className={styles.card} href="/admin/sales">
           Sales
           <div className={styles.rowMeta}>Revenue by title, collection, and club, from confirmed payments.</div>

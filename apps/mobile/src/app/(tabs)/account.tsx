@@ -1,15 +1,17 @@
 import { useEffect, useState } from "react";
 import { router } from "expo-router";
-import { FlatList, Pressable, StyleSheet, TextInput, View } from "react-native";
+import { FlatList, Pressable, StyleSheet, Switch, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import type { User } from "@supabase/supabase-js";
 import {
   getContinueListening,
+  getOwnedClubMonths,
   getOwnedCollections,
   getOwnedTitles,
   requestOtp,
   signOut,
   verifyOtp,
+  type ClubMonthWithTitle,
   type Collection,
   type ContinueListeningItem,
   type Title,
@@ -22,6 +24,7 @@ import { Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { supabase } from "@/lib/supabase";
 import { isPurchasesConfigured, restorePurchases } from "@/lib/purchases";
+import { registerForPushNotifications } from "@/lib/notifications";
 
 export default function AccountScreen() {
   const theme = useTheme();
@@ -30,8 +33,12 @@ export default function AccountScreen() {
   const [library, setLibrary] = useState<ContinueListeningItem[]>([]);
   const [ownedTitles, setOwnedTitles] = useState<Title[]>([]);
   const [ownedCollections, setOwnedCollections] = useState<Collection[]>([]);
+  const [ownedClubMonths, setOwnedClubMonths] = useState<ClubMonthWithTitle[]>([]);
   const [restoring, setRestoring] = useState(false);
   const [restoreMessage, setRestoreMessage] = useState<string | null>(null);
+  const [pushEnabled, setPushEnabled] = useState(false);
+  const [pushBusy, setPushBusy] = useState(false);
+  const [pushMessage, setPushMessage] = useState<string | null>(null);
 
   const [step, setStep] = useState<"email" | "code">("email");
   const [email, setEmail] = useState("");
@@ -56,14 +63,36 @@ export default function AccountScreen() {
         setLibrary([]);
         setOwnedTitles([]);
         setOwnedCollections([]);
+        setOwnedClubMonths([]);
         return;
       }
       setLibrary(await getContinueListening(supabase, 50));
       setOwnedTitles(await getOwnedTitles(supabase, user.id));
       setOwnedCollections(await getOwnedCollections(supabase, user.id));
+      setOwnedClubMonths(await getOwnedClubMonths(supabase, user.id));
     }
     run();
   }, [user]);
+
+  async function handlePushToggle(value: boolean) {
+    setPushMessage(null);
+    if (!value || !user) {
+      setPushEnabled(false);
+      return;
+    }
+    setPushBusy(true);
+    try {
+      const result = await registerForPushNotifications(user.id);
+      if (result.error) {
+        setPushMessage(result.error);
+        setPushEnabled(false);
+      } else {
+        setPushEnabled(true);
+      }
+    } finally {
+      setPushBusy(false);
+    }
+  }
 
   async function handleRestore() {
     setRestoreMessage(null);
@@ -182,6 +211,40 @@ export default function AccountScreen() {
         </Pressable>
         {restoreMessage && <ThemedText themeColor="textSecondary">{restoreMessage}</ThemedText>}
 
+        <View style={styles.row}>
+          <ThemedText style={styles.flex1}>Club notifications</ThemedText>
+          <Switch value={pushEnabled} onValueChange={handlePushToggle} disabled={pushBusy} />
+        </View>
+        {pushMessage && (
+          <ThemedText type="small" themeColor="textSecondary">
+            {pushMessage}
+          </ThemedText>
+        )}
+
+        {ownedClubMonths.length > 0 && (
+          <>
+            <ThemedText type="smallBold" style={styles.sectionTitle}>
+              Club months
+            </ThemedText>
+            <FlatList
+              horizontal
+              data={ownedClubMonths}
+              keyExtractor={(item) => item.id}
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.rail}
+              renderItem={({ item }) => (
+                <Pressable style={styles.card} onPress={() => router.push("/club")}>
+                  <View style={[styles.collectionPoster, { backgroundColor: "#3d3a52" }]}>
+                    <ThemedText type="smallBold" style={styles.posterLabel}>
+                      {item.title.title}
+                    </ThemedText>
+                  </View>
+                </Pressable>
+              )}
+            />
+          </>
+        )}
+
         <ThemedText type="smallBold" style={styles.sectionTitle}>
           Owned commentaries
         </ThemedText>
@@ -254,6 +317,13 @@ export default function AccountScreen() {
 }
 
 const styles = StyleSheet.create({
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  flex1: {
+    flex: 1,
+  },
   container: {
     flex: 1,
   },

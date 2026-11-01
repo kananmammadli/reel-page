@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getContinueListening, getHomeRails } from "@reel-and-page/shared";
+import { getContinueListening, getCurrentClubMonth, getHomeRails, hasClubMonthEntitlement } from "@reel-and-page/shared";
 import { createClient } from "@/lib/supabase/server";
 import { PosterCard } from "@/components/catalog/PosterCard";
 import styles from "./page.module.css";
@@ -12,13 +12,36 @@ export const dynamic = "force-dynamic";
 export default async function HomePage() {
   const supabase = await createClient();
   const { data: userData } = await supabase.auth.getUser();
-  const [{ freeToStart, recentlyAdded, collections }, continueListening] = await Promise.all([
+  const [{ freeToStart, recentlyAdded, collections }, continueListening, clubMonth] = await Promise.all([
     getHomeRails(supabase),
     userData.user ? getContinueListening(supabase, 10) : Promise.resolve([]),
+    getCurrentClubMonth(supabase),
   ]);
+  const clubEntitled = clubMonth && userData.user ? await hasClubMonthEntitlement(supabase, userData.user.id, clubMonth.id) : false;
 
   return (
     <div className={styles.main}>
+      {clubMonth && (
+        <section>
+          <Link
+            href="/club"
+            style={{
+              display: "block",
+              borderRadius: 12,
+              padding: 20,
+              background: "linear-gradient(160deg, #3d3a52, #15131f)",
+              color: "#fff8f2",
+              textDecoration: "none",
+            }}
+          >
+            <div style={{ opacity: 0.7, fontSize: "0.85rem" }}>This month&rsquo;s club pick</div>
+            <div style={{ fontSize: "1.3rem", fontWeight: 700, margin: "4px 0" }}>{clubMonth.title.title}</div>
+            {clubMonth.pitch && <div style={{ opacity: 0.85 }}>{clubMonth.pitch}</div>}
+            <div style={{ marginTop: 10, fontWeight: 600 }}>{clubEntitled ? "Open the club →" : "Join the club →"}</div>
+          </Link>
+        </section>
+      )}
+
       {continueListening.length > 0 && (
         <section>
           <h2 className={styles.sectionTitle}>Continue listening</h2>

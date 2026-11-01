@@ -44,6 +44,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
               Reel &amp; Page
             </Link>
             <Link href="/catalog">Catalog</Link>
+            <Link href="/club">Club</Link>
             {host && <Link href="/admin">Admin</Link>}
             <Link href={userData.user ? "/account" : "/auth/sign-in"} style={{ marginLeft: "auto" }}>
               {userData.user ? "Profile" : "Sign in"}
