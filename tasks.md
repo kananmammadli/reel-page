@@ -51,21 +51,17 @@ Verified end-to-end: the entitlement gate's four access scenarios, webhook signa
 
 ---
 
-## Milestone 5 — Admin panel
+## Milestone 5 — Admin panel ✅ done (catalog + sales; club/Q&A/chat tools moved into milestone 6)
 
-**Goal:** Liliya can run the catalog and see sales without touching SQL.
+Host RLS policies + payments ledger (`7232739`), `apps/web/src/app/admin/` panel (`dfa626e`).
 
-1. `apps/web/src/app/admin/` route group, gated by a `role = 'host'` check on `profiles` (middleware or layout-level check; redirect non-hosts).
-2. Title/episode CRUD forms: create/edit title metadata, poster upload (to the `posters` bucket), collection assignment, `is_free` toggle.
-3. Episode upload flow: upload full audio to the `audio` bucket, then an Edge Function (`supabase/functions/generate-preview/index.ts`) that trims the first 5 minutes (shell out to `ffmpeg` inside the function, or use a queued job if Edge Functions can't run `ffmpeg` directly — check runtime constraints before committing to this approach) and writes the preview file.
-4. Transcript upload: accept a timestamped transcript file (decide the input format — SRT or a small JSON schema — and document it in `SPEC.md` §4) and store it as the `episodes.transcript` jsonb.
-5. Club schedule UI: pick the month's title, set `club_releases.release_at` per episode.
-6. Q&A inbox: list unanswered `questions`, a reply form that sets `answer`/`answered_at`/`published`.
-7. Chat tools: pin/delete message, view `reports` queue, suspend member (insert into `blocks` on the host's behalf, or a separate `suspensions` concept if blocking isn't the right primitive — check against §3.5 wording before building).
-8. Sales overview: a read-only dashboard querying `entitlements`/`subscriptions` joined to `titles`/`collections`, grouped by period.
-9. Tests: RLS/authorization tests confirming a non-host `authenticated` user gets rejected from every admin write path, both at the RLS layer and at the route/middleware layer (defense in depth — don't rely on only one).
+Host-only (`profiles.role = 'host'`), gated at the layout (redirect) and independently inside every server action (defense in depth — RLS enforces the same thing at the DB layer regardless of what rendered the form). Titles/episodes/collections CRUD, with direct-to-storage browser uploads for posters and episode audio. Uploading episode audio triggers a real `ffmpeg`/`ffprobe` run (via `ffmpeg-static`/`ffprobe-static`, not a Supabase Edge Function — Deno's hosted sandbox can't spawn a native binary, so this needed a real Node process, i.e. a Next.js Route Handler) that trims the first 5 minutes and fills in `duration_s`. Transcript format decided and documented in `SPEC.md`/`SPEC.ru.md` §4: a JSON array of `{text, start_s, end_s}`, uploaded as a `.json` file — this is the format milestone 2's seed data already used, not a new one. Sales overview reads a new append-only `payments` ledger (one row per confirmed charge, populated by the webhooks from real event amounts, never hard-coded) rather than `entitlements`/`subscriptions`, since those are current-state tables and can't answer "revenue this month".
 
-**Definition of done:** Liliya can publish a new title end-to-end (upload → preview generated → transcript attached → appears in the catalog) without any direct DB access, and no non-host account can reach any admin mutation.
+Club schedule UI, Q&A inbox, and chat moderation tools (original items 5–7) were **not** built here — they need `club_months`/`questions`/`chat_messages`/`blocks`/`reports`, which don't exist until milestone 6's schema lands. Building that schema early just to satisfy this milestone's admin screens would mean designing it without the member-facing half it has to match, so those three admin screens move to milestone 6 and get built alongside the schema and the member-facing UI they pair with.
+
+Verified end-to-end in a real browser (CDP/Puppeteer, not just type-checked): signed in as a host, created a title, uploaded a real short audio file + transcript JSON, confirmed the preview was actually generated (real `ffmpeg` run, not a stub) and `duration_s` filled in, confirmed the published title appeared on its public page, confirmed the sales dashboard renders, and confirmed a non-host signing in gets redirected away from `/admin`. pgTAP covers the RLS side (host CRUD succeeds, non-host is rejected, no client role — host included — can write `payments` directly). Caught and fixed two real bugs this way, not just by reasoning about the code: `ffmpeg-static`/`ffprobe-static`'s binary paths got mangled by Next's build-time file tracing (fixed via `serverExternalPackages`), and Next.js 16's dev-mode `<nextjs-portal>` toolbar overlay was silently swallowing clicks on form buttons near the bottom of a short headless-browser viewport (fixed by using a taller one).
+
+**Definition of done** (as scoped above): Liliya can publish a new title end-to-end (upload → preview generated → transcript attached → appears in the catalog) without any direct DB access, and no non-host account can reach any admin mutation.
 
 ---
 
@@ -73,13 +69,15 @@ Verified end-to-end: the entitlement gate's four access scenarios, webhook signa
 
 **Goal:** the monthly club experience — scheduled drops, live chat, Q&A, moderation.
 
+Also covers the admin screens originally scoped to milestone 5 (club schedule UI, Q&A inbox, chat moderation tools) — those need this milestone's schema, so building them early would have meant designing them without the member-facing half they pair with. Build each admin screen together with the member-facing feature it serves, not as a separate pass.
+
 1. `supabase/migrations/<ts>_club.sql`: `club_months`, `club_releases`, `chat_messages`, `questions`, `blocks`, `reports` tables per §4. RLS: chat/questions readable by club members for that month only (join against `entitlements` where `kind = 'club_month'`); writes owner-only plus host-can-moderate policies.
-2. Scheduled release logic: a Postgres `cron` job (via `pg_cron`, enabled in `config.toml`) or a scheduled Edge Function that flips episode visibility based on `club_releases.release_at`.
+2. Scheduled release logic: a Postgres `cron` job (via `pg_cron`, enabled in `config.toml`) or a scheduled Edge Function that flips episode visibility based on `club_releases.release_at`. Admin side: a schedule screen in `apps/web/src/app/admin/` to pick the month's title and set `club_releases.release_at` per episode.
 3. Realtime chat: enable Supabase Realtime on `chat_messages`; both apps subscribe to the current club month's channel. Build the chat UI (message list, reply threading via `reply_to`, host badge, pin indicator).
-4. Q&A UI: submit a question (member), answer it (host, in the milestone-5 admin inbox), show published Q&A to all members, show the submitter their own question's status.
-5. Report/block: "report message" and "block member" actions from the chat UI; blocked members' messages disappear client-side immediately (filter by the current user's `blocks` list) and reports land in the admin queue from milestone 5.
+4. Q&A: submit a question (member), show published Q&A to all members, show the submitter their own question's status. Admin side: an inbox in `apps/web/src/app/admin/` listing unanswered `questions` with a reply form that sets `answer`/`answered_at`/`published`.
+5. Report/block: "report message" and "block member" actions from the chat UI; blocked members' messages disappear client-side immediately (filter by the current user's `blocks` list). Admin side: pin/delete message, a `reports` queue, and suspending a member (insert into `blocks` on the host's behalf, or a separate `suspensions` concept if blocking isn't the right primitive — check against §3.5 wording before building).
 6. Push notifications: Expo push tokens stored on `profiles` (add a column or a side table), triggered from the Edge Functions that handle episode release and Q&A answers. Require explicit opt-in (a Profile toggle) before registering the token.
-7. Tests: RLS tests for the member-only chat/Q&A visibility; a test that a blocked member's new messages don't surface to the blocker; a test for the scheduled-release cron logic (can run as a plain SQL/function test without waiting for real time to pass — set `release_at` in the past and assert visibility).
+7. Tests: RLS tests for the member-only chat/Q&A visibility, and for the admin-only moderation writes (same host-gating pattern as milestone 5's `admin_rls.sql`); a test that a blocked member's new messages don't surface to the blocker; a test for the scheduled-release cron logic (can run as a plain SQL/function test without waiting for real time to pass — set `release_at` in the past and assert visibility).
 
 **Definition of done:** a club member sees this month's episodes unlock on schedule, can chat and ask questions in real time on both platforms, blocking/reporting works, and push notifications fire for new episodes and answered questions.
 
