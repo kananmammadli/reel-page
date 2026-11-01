@@ -41,29 +41,13 @@ Verified on web end-to-end in a real browser (CDP): signed in with a real OTP co
 
 ---
 
-## Milestone 4 — Purchases
+## Milestone 4 — Purchases ✅ done (backend + UI wiring; non-functional without real Stripe/RevenueCat accounts)
 
-**Goal:** real money unlocks real content, through the single `entitlements` source of truth.
+`entitlements`/`subscriptions` migration + RLS + webhooks + entitlement gate (`8986669`), checkout/purchase UI wiring + owned-content library (`2bea410`).
 
-1. `supabase/migrations/<ts>_entitlements.sql`: `entitlements`, `subscriptions` tables per §4. RLS: owner-only `SELECT`; **no** insert/update/delete policies for any client role — only the `service_role` key (used exclusively inside Edge Functions) can write these. This is the core security invariant from `CLAUDE.md` — double check it with a test, not just a reading of the policy.
-2. Stripe (web):
-   - Products/prices created in the Stripe dashboard (test mode); store the `price_ref` on `titles`/`collections` matching Stripe price IDs.
-   - `apps/web` checkout flow: server action or route handler creates a Checkout Session.
-   - Edge Function `supabase/functions/stripe-webhook/index.ts`: verifies the Stripe signature, handles `checkout.session.completed` (one-time) and `customer.subscription.*` events (club), writes `entitlements`/`subscriptions` rows using the service role client.
-3. RevenueCat (mobile):
-   - Configure RevenueCat project with the same products mirrored to App Store Connect / Play Console (sandbox first).
-   - Mobile app initializes the RevenueCat SDK, presents the purchase sheet (triggered from the "Buy to unlock" CTA built in milestone 2), calls `Purchases.purchase(...)`.
-   - Edge Function `supabase/functions/revenuecat-webhook/index.ts`: verifies the RevenueCat webhook auth header, handles `INITIAL_PURCHASE`/`RENEWAL`/`CANCELLATION`/etc., writes `entitlements`/`subscriptions`.
-4. Replace the milestone-2 placeholder (`is_free` check in app code) with a real entitlement check: `packages/shared/src/entitlements.ts` → `hasAccess(userId, { titleId | collectionId | clubMonthId })` queries `entitlements`. Use this everywhere full audio is requested — in `getFullAudioUrl`, check entitlement server-side (an Edge Function or a Next.js route handler — **not** client-side only, since the signed-URL issuance must happen after the check) before issuing the signed URL.
-5. Restore purchases: a button in Profile (both apps) calling `Purchases.restorePurchases()` (mobile) / re-syncing from Stripe customer portal (web).
-6. Library screen: now backed by real `entitlements` — list owned titles/collections, club membership status.
-7. Tests (these are the ones `CLAUDE.md` explicitly calls out as protecting revenue):
-   - Webhook handler tests: feed recorded/fixture Stripe and RevenueCat webhook payloads into the Edge Functions (locally via `supabase functions serve`) and assert the resulting `entitlements`/`subscriptions` rows.
-   - Signature-verification tests: malformed/unsigned payloads must be rejected (401/400), not silently processed.
-   - RLS test: confirm `anon`/`authenticated` roles get a permission error on direct `insert`/`update` to `entitlements`.
-   - `hasAccess()` unit tests covering single-title, collection-membership, and active-club-month cases.
+`entitlements` is the single source of truth (polymorphic `ref_id`, owner-only `SELECT`, no insert/update/delete policy for any client role — verified by a pgTAP test, not just a reading of the policy). `get-audio-url` checks it server-side before issuing a signed URL for paid content. `stripe-webhook` and `revenuecat-webhook` Edge Functions verify real signatures (Stripe's SDK helper; a hand-rolled HMAC check for RevenueCat, since no official Deno/npm verifier exists for its scheme) and write `entitlements`/`subscriptions` idempotently via `unique(source, external_id)` + `ignoreDuplicates`. Web got a `/api/checkout` route (Stripe Checkout Sessions) and mobile got `lib/purchases.ts` (RevenueCat wrapper); both wire a live "Buy to unlock" button and a "Restore purchases" action, and both show a real owned-content library backed by `getOwnedTitles`/`getOwnedCollections`.
 
-**Definition of done:** a test purchase (Stripe test card / sandbox IAP) unlocks the title end-to-end on both platforms, restore purchases works, and no client role can write `entitlements` directly — verified by a failing test if you try.
+Verified end-to-end: the entitlement gate's four access scenarios, webhook signature rejection + idempotent processing (Node integration tests against real fixture users), RLS invariants (pgTAP), and the buy-button/restore-button error states when purchases aren't configured. Not verifiable without real accounts (scoped out per `CLAUDE.md`'s "ask before expensive-to-undo decisions" rule): an actual completed Stripe checkout or a real App Store/Play sandbox purchase and restore. Both code paths are real and ready to exercise once those accounts exist.
 
 ---
 
