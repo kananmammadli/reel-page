@@ -152,6 +152,43 @@ export type Database = {
           },
         ];
       };
+      payments: {
+        Row: {
+          amount_cents: number;
+          currency: string;
+          external_id: string;
+          id: string;
+          kind: Database["public"]["Enums"]["entitlement_kind"];
+          occurred_at: string;
+          ref_id: string | null;
+          source: Database["public"]["Enums"]["entitlement_source"];
+          user_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          amount_cents: number;
+          currency: string;
+          external_id: string;
+          id?: string;
+          kind: Database["public"]["Enums"]["entitlement_kind"];
+          occurred_at?: string;
+          ref_id?: string | null;
+          source: Database["public"]["Enums"]["entitlement_source"];
+          user_id: string;
+        };
+        Update: {
+          amount_cents?: number;
+          currency?: string;
+          external_id?: string;
+          id?: string;
+          kind?: Database["public"]["Enums"]["entitlement_kind"];
+          occurred_at?: string;
+          ref_id?: string | null;
+          source?: Database["public"]["Enums"]["entitlement_source"];
+          user_id?: string;
+        };
+        Relationships: [];
+      };
       playback_positions: {
         Row: {
           episode_id: string;
@@ -283,7 +320,7 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
-      [_ in never]: never;
+      is_host: { Args: Record<PropertyKey, never>; Returns: boolean };
     };
     Enums: {
       entitlement_kind: "title" | "collection" | "club_month";

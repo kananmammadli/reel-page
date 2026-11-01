@@ -25,6 +25,8 @@ type RevenueCatEvent = {
   transaction_id: string;
   store: string;
   expiration_at_ms?: number;
+  price_in_purchased_currency?: number;
+  currency?: string;
 };
 
 function jsonResponse(body: unknown, status = 200) {
@@ -89,18 +91,39 @@ Deno.serve(async (req) => {
   const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
   const productRef = parseProductRef(event.product_id);
 
+  // Best-effort revenue record for the sales dashboard. RevenueCat doesn't
+  // always include price (e.g. promotional entitlements) -- never let a
+  // missing amount block granting the entitlement itself.
+  async function recordPayment(kind: "title" | "collection" | "club_month", refId: string | null) {
+    if (event.price_in_purchased_currency == null || !event.currency) return;
+    await supabase.from("payments").upsert(
+      {
+        user_id: userId,
+        kind,
+        ref_id: refId,
+        source,
+        external_id: event.transaction_id,
+        amount_cents: Math.round(event.price_in_purchased_currency * 100),
+        currency: event.currency,
+      },
+      { onConflict: "source,external_id", ignoreDuplicates: true },
+    );
+  }
+
   if ((event.type === "INITIAL_PURCHASE" || event.type === "NON_RENEWING_PURCHASE") && productRef) {
     const { error } = await supabase.from("entitlements").upsert(
       { user_id: userId, kind: productRef.kind, ref_id: productRef.refId, source, external_id: event.transaction_id },
       { onConflict: "source,external_id", ignoreDuplicates: true },
     );
     if (error) return jsonResponse({ error: error.message }, 500);
+    await recordPayment(productRef.kind, productRef.refId);
     return jsonResponse({ received: true });
   }
 
   // Club subscription lifecycle (product isn't a title:/collection: one-time purchase).
   if (["INITIAL_PURCHASE", "RENEWAL", "CANCELLATION", "EXPIRATION", "UNCANCELLATION"].includes(event.type)) {
     const status = event.type === "CANCELLATION" || event.type === "EXPIRATION" ? "canceled" : "active";
+    if (event.type === "INITIAL_PURCHASE" || event.type === "RENEWAL") await recordPayment("club_month", null);
     const currentPeriodEnd = event.expiration_at_ms ? new Date(event.expiration_at_ms).toISOString() : null;
 
     const { data: existing, error: lookupError } = await supabase

@@ -89,7 +89,7 @@ Prices: to be decided. All prices live in the database and store dashboards.
 
 - `profiles` (id = auth user id, display_name, role, created_at)
 - `titles` (id, type film|story, title, creator, year, genre, description, poster_url, is_free, price_ref, published_at)
-- `episodes` (id, title_id, position, name, duration_s, audio_path, preview_path, transcript jsonb)
+- `episodes` (id, title_id, position, name, duration_s, audio_path, preview_path, transcript jsonb). `transcript` is a JSON array of `{text, start_s, end_s}` objects, one per transcript line, uploaded as a `.json` file in the admin panel.
 - `collections` (id, name, price_ref) and `collection_titles` (collection_id, title_id)
 - `club_months` (id, month, title_id) and `club_releases` (club_month_id, episode_id, release_at)
 - `entitlements` (id, user_id, kind title|collection|club_month, ref_id, source apple|google|stripe, external_id, created_at)
@@ -101,8 +101,9 @@ Prices: to be decided. All prices live in the database and store dashboards.
 - `blocks` (user_id, blocked_user_id) and `reports` (id, reporter_id, message_id, reason, status)
 - `listening_days` (user_id, day, seconds)
 - `reflection_settings` (user_id, enabled, consented_at)
+- `payments` (id, user_id, kind, ref_id, source, external_id, amount_cents, currency, occurred_at) -- an append-only ledger, one row per confirmed charge (a one-time purchase, or each club subscription renewal), that the admin sales dashboard reads from.
 
-All tables protected by Row Level Security. Entitlements and subscriptions are written only by Edge Functions handling RevenueCat and Stripe webhooks.
+All tables protected by Row Level Security. Entitlements, subscriptions, and payments are written only by Edge Functions handling RevenueCat and Stripe webhooks. The host (`profiles.role = 'host'`) can read and write the catalog tables (titles, episodes, collections) and read every user's entitlements/subscriptions/payments; no other role can.
 
 ## 5. Non-functional requirements
 

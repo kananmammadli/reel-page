@@ -89,7 +89,7 @@ Reel & Page продаёт устные комментарии к фильмам
 
 - `profiles` (id = id пользователя из auth, display_name, role, created_at)
 - `titles` (id, type film|story, title, creator, year, genre, description, poster_url, is_free, price_ref, published_at)
-- `episodes` (id, title_id, position, name, duration_s, audio_path, preview_path, transcript jsonb)
+- `episodes` (id, title_id, position, name, duration_s, audio_path, preview_path, transcript jsonb). `transcript` -- это JSON-массив объектов `{text, start_s, end_s}`, одна строка транскрипта на объект; загружается как `.json`-файл в админ-панели.
 - `collections` (id, name, price_ref) и `collection_titles` (collection_id, title_id)
 - `club_months` (id, month, title_id) и `club_releases` (club_month_id, episode_id, release_at)
 - `entitlements` (id, user_id, kind title|collection|club_month, ref_id, source apple|google|stripe, external_id, created_at)
@@ -101,8 +101,9 @@ Reel & Page продаёт устные комментарии к фильмам
 - `blocks` (user_id, blocked_user_id) и `reports` (id, reporter_id, message_id, reason, status)
 - `listening_days` (user_id, day, seconds)
 - `reflection_settings` (user_id, enabled, consented_at)
+- `payments` (id, user_id, kind, ref_id, source, external_id, amount_cents, currency, occurred_at) -- неизменяемый журнал, одна строка на каждый подтверждённый платёж (разовая покупка или продление клубной подписки); из него строится панель продаж в админке.
 
-Все таблицы защищены Row Level Security. Entitlements и subscriptions изменяются только через Edge Functions, обрабатывающие вебхуки RevenueCat и Stripe.
+Все таблицы защищены Row Level Security. Entitlements, subscriptions и payments изменяются только через Edge Functions, обрабатывающие вебхуки RevenueCat и Stripe. Host (`profiles.role = 'host'`) может читать и изменять таблицы каталога (titles, episodes, collections) и читать entitlements/subscriptions/payments всех пользователей; другим ролям это недоступно.
 
 ## 5. Нефункциональные требования
 

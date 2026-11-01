@@ -81,6 +81,22 @@ Deno.serve(async (req) => {
         { onConflict: "source,external_id", ignoreDuplicates: true },
       );
     if (error) return jsonResponse({ error: error.message }, 500);
+
+    if (session.amount_total != null && session.currency) {
+      await supabase.from("payments").upsert(
+        {
+          user_id: userId,
+          kind,
+          ref_id: refId,
+          source: "stripe",
+          external_id: session.id,
+          amount_cents: session.amount_total,
+          currency: session.currency,
+        },
+        { onConflict: "source,external_id", ignoreDuplicates: true },
+      );
+    }
+
     return jsonResponse({ received: true });
   }
 
@@ -106,6 +122,33 @@ Deno.serve(async (req) => {
       current_period_end: currentPeriodEnd,
     });
     if (error) return jsonResponse({ error: error.message }, 500);
+    return jsonResponse({ received: true });
+  }
+
+  // Each successful renewal charge, for the sales dashboard. The invoice
+  // itself doesn't carry the subscription's metadata, so look the
+  // subscription back up for the user id it was created with.
+  if (event.type === "invoice.payment_succeeded") {
+    const invoice = event.data.object as Stripe.Invoice;
+    const subscriptionId = typeof invoice.subscription === "string" ? invoice.subscription : invoice.subscription?.id;
+    if (subscriptionId && invoice.amount_paid != null && invoice.currency) {
+      const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+      const userId = subscription.metadata?.user_id;
+      if (userId) {
+        await supabase.from("payments").upsert(
+          {
+            user_id: userId,
+            kind: "club_month",
+            ref_id: null,
+            source: "stripe",
+            external_id: invoice.id,
+            amount_cents: invoice.amount_paid,
+            currency: invoice.currency,
+          },
+          { onConflict: "source,external_id", ignoreDuplicates: true },
+        );
+      }
+    }
     return jsonResponse({ received: true });
   }
 
