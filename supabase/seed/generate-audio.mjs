@@ -9,6 +9,9 @@
 //
 // macOS only. Not used in CI, not used against a real project — these are
 // throwaway dev fixtures, not production content.
+//
+// Seed content is Russian (SPEC.md: content language is Russian), so this
+// uses macOS's ru_RU voice. Check available voices with `say -v '?'`.
 
 import { createClient } from "@supabase/supabase-js";
 import { spawnSync } from "node:child_process";
@@ -27,11 +30,12 @@ const SERVICE_ROLE_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU";
 
 const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
+const VOICE = "Milena"; // ru_RU
 
 function synthesize(text, outPath) {
   const dir = mkdtempSync(join(tmpdir(), "rp-audio-"));
   const aiff = join(dir, "speech.aiff");
-  const say = spawnSync("say", ["-o", aiff, text], { stdio: "inherit" });
+  const say = spawnSync("say", ["-v", VOICE, "-o", aiff, text], { stdio: "inherit" });
   if (say.status !== 0) throw new Error("say failed");
   const convert = spawnSync("afconvert", ["-f", "m4af", "-d", "aac", aiff, outPath], {
     stdio: "inherit",
