@@ -1,6 +1,9 @@
--- RLS test for accounts (milestone 3 tasks.md §3): profiles and
--- playback_positions are owner-only -- a user can read/write their own row
--- and never another user's.
+-- RLS test for accounts (milestone 3 tasks.md §3): playback_positions is
+-- owner-only -- a user can read/write their own row and never another
+-- user's. profiles is select-public as of milestone 6 (club chat/Q&A need
+-- to show any poster's display name and host badge, and nothing on this
+-- table is actually sensitive) but still write-restricted the same way --
+-- see club_rls.sql for that policy's own test.
 begin;
 create extension if not exists pgtap;
 
@@ -26,8 +29,8 @@ select results_eq(
 
 select results_eq(
   $$ select count(*)::int from profiles where id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb' $$,
-  $$ values (0) $$,
-  'a user cannot see another user''s profile'
+  $$ values (1) $$,
+  'a user can see another user''s profile (display name/host badge, needed for club chat)'
 );
 
 select results_eq(

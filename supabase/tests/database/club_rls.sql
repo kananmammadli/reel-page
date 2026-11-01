@@ -9,7 +9,7 @@
 begin;
 create extension if not exists pgtap;
 
-select plan(25);
+select plan(26);
 
 insert into auth.users (id, email) values
   ('a0000000-0000-0000-0000-000000000001', 'host@example.com'),
@@ -56,6 +56,12 @@ select throws_like(
   $$ update profiles set suspended_at = now() where id = 'a0000000-0000-0000-0000-000000000004' $$,
   '%permission denied%',
   'a user cannot un-suspend themselves by writing profiles.suspended_at'
+);
+
+select results_eq(
+  $$ select count(*)::int from profiles where id = 'a0000000-0000-0000-0000-000000000001' $$,
+  $$ values (1) $$,
+  'any authenticated user can read another user''s display name/role (needed to render chat)'
 );
 
 -- 2. club_months / club_releases: public metadata.
