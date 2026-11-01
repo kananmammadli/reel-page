@@ -76,6 +76,37 @@ export type Database = {
         };
         Relationships: [];
       };
+      entitlements: {
+        Row: {
+          created_at: string;
+          external_id: string;
+          id: string;
+          kind: Database["public"]["Enums"]["entitlement_kind"];
+          ref_id: string;
+          source: Database["public"]["Enums"]["entitlement_source"];
+          user_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          external_id: string;
+          id?: string;
+          kind: Database["public"]["Enums"]["entitlement_kind"];
+          ref_id: string;
+          source: Database["public"]["Enums"]["entitlement_source"];
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          external_id?: string;
+          id?: string;
+          kind?: Database["public"]["Enums"]["entitlement_kind"];
+          ref_id?: string;
+          source?: Database["public"]["Enums"]["entitlement_source"];
+          user_id?: string;
+        };
+        Relationships: [];
+      };
       episodes: {
         Row: {
           audio_path: string;
@@ -173,6 +204,34 @@ export type Database = {
         };
         Relationships: [];
       };
+      subscriptions: {
+        Row: {
+          created_at: string;
+          current_period_end: string;
+          external_id: string;
+          source: Database["public"]["Enums"]["entitlement_source"];
+          status: string;
+          user_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          current_period_end: string;
+          external_id: string;
+          source: Database["public"]["Enums"]["entitlement_source"];
+          status: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          current_period_end?: string;
+          external_id?: string;
+          source?: Database["public"]["Enums"]["entitlement_source"];
+          status?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
       titles: {
         Row: {
           created_at: string;
@@ -227,6 +286,8 @@ export type Database = {
       [_ in never]: never;
     };
     Enums: {
+      entitlement_kind: "title" | "collection" | "club_month";
+      entitlement_source: "apple" | "google" | "stripe";
       title_type: "film" | "story";
     };
     CompositeTypes: {
@@ -346,6 +407,8 @@ export const Constants = {
   },
   public: {
     Enums: {
+      entitlement_kind: ["title", "collection", "club_month"],
+      entitlement_source: ["apple", "google", "stripe"],
       title_type: ["film", "story"],
     },
   },

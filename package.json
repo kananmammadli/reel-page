@@ -11,7 +11,9 @@
     "lint": "turbo run lint",
     "type-check": "turbo run type-check",
     "test": "turbo run test",
-    "seed:audio": "node supabase/seed/generate-audio.mjs"
+    "seed:audio": "node supabase/seed/generate-audio.mjs",
+    "test:webhooks": "node supabase/functions/test-webhooks.mjs",
+    "test:entitlements": "node supabase/functions/test-entitlement-gate.mjs"
   },
   "devDependencies": {
     "turbo": "^2.3.0",
