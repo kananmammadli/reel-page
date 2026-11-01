@@ -34,7 +34,7 @@ export default async function EditClubMonthPage({ params }: { params: Promise<{ 
         .limit(50),
       supabase
         .from("reports")
-        .select("*, message:chat_messages!inner(body, user_id, club_month_id), reporter:profiles!reports_reporter_id_fkey(display_name)")
+        .select("*, message:chat_messages!inner(body, user_id, club_month_id), reporter:profiles!reports_reporter_id_profiles_fkey(display_name)")
         .eq("message.club_month_id", clubMonth.id)
         .order("created_at", { ascending: false }),
     ]);
