@@ -101,9 +101,10 @@ Reel & Page продаёт устные комментарии к фильмам
 - `blocks` (user_id, blocked_user_id) и `reports` (id, reporter_id, message_id, reason, status)
 - `listening_days` (user_id, day, seconds)
 - `reflection_settings` (user_id, enabled, consented_at)
+- `reflections` (id, user_id, week_start, quotes_count, total_minutes, main_theme, reflective_question, created_at) -- собственно результат еженедельной рефлексии, одна строка на пользователя в неделю, показывается в профиле. Не было в первом черновике -- добавлено, чтобы рефлексия сохранялась в приложении, а не только уходила письмом/push. Пишется только Edge Function weekly-reflection; пользователь может читать и удалять (но не писать) свои строки -- именно удаление и делает «отключить и удалить данные» (§3.6) реальным удалением, а не просто скрытием.
 - `payments` (id, user_id, kind, ref_id, source, external_id, amount_cents, currency, occurred_at) -- неизменяемый журнал, одна строка на каждый подтверждённый платёж (разовая покупка или продление клубной подписки); из него строится панель продаж в админке.
 
-Все таблицы защищены Row Level Security. Entitlements, subscriptions и payments изменяются только через Edge Functions, обрабатывающие вебхуки RevenueCat и Stripe. Host (`profiles.role = 'host'`) может читать и изменять таблицы каталога (titles, episodes, collections) и читать entitlements/subscriptions/payments всех пользователей; другим ролям это недоступно.
+Все таблицы защищены Row Level Security. Entitlements, subscriptions и payments изменяются только через Edge Functions, обрабатывающие вебхуки RevenueCat и Stripe; reflections -- только через Edge Function weekly-reflection. Host (`profiles.role = 'host'`) может читать и изменять таблицы каталога (titles, episodes, collections) и читать entitlements/subscriptions/payments всех пользователей; другим ролям это недоступно.
 
 ## 5. Нефункциональные требования
 

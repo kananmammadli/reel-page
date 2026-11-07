@@ -101,9 +101,10 @@ Prices: to be decided. All prices live in the database and store dashboards.
 - `blocks` (user_id, blocked_user_id) and `reports` (id, reporter_id, message_id, reason, status)
 - `listening_days` (user_id, day, seconds)
 - `reflection_settings` (user_id, enabled, consented_at)
+- `reflections` (id, user_id, week_start, quotes_count, total_minutes, main_theme, reflective_question, created_at) -- the weekly reflection's actual output, one row per user per week, shown in Profile. Not in the original draft; added so the reflection has somewhere to live in-app, not just an email/push. Written only by the weekly-reflection Edge Function; a user can read and delete (never write) their own rows -- deleting is how "turn off and delete data" (§3.6) actually removes something, not just hides it.
 - `payments` (id, user_id, kind, ref_id, source, external_id, amount_cents, currency, occurred_at) -- an append-only ledger, one row per confirmed charge (a one-time purchase, or each club subscription renewal), that the admin sales dashboard reads from.
 
-All tables protected by Row Level Security. Entitlements, subscriptions, and payments are written only by Edge Functions handling RevenueCat and Stripe webhooks. The host (`profiles.role = 'host'`) can read and write the catalog tables (titles, episodes, collections) and read every user's entitlements/subscriptions/payments; no other role can.
+All tables protected by Row Level Security. Entitlements, subscriptions, and payments are written only by Edge Functions handling RevenueCat and Stripe webhooks; reflections only by the weekly-reflection Edge Function. The host (`profiles.role = 'host'`) can read and write the catalog tables (titles, episodes, collections) and read every user's entitlements/subscriptions/payments; no other role can.
 
 ## 5. Non-functional requirements
 

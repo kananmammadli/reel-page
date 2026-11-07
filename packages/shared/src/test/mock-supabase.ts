@@ -7,7 +7,7 @@ export type QueryResult = { data: unknown; error: unknown };
 // awaited (PostgrestFilterBuilder is a thenable, not a Promise).
 export function fakeQuery(result: QueryResult) {
   const builder: Record<string, unknown> = {};
-  const chainMethods = ["select", "eq", "in", "is", "order", "or", "limit", "upsert", "insert", "delete"];
+  const chainMethods = ["select", "eq", "in", "is", "gte", "order", "or", "limit", "upsert", "insert", "delete"];
   for (const method of chainMethods) {
     builder[method] = vi.fn(() => builder);
   }
@@ -16,9 +16,10 @@ export function fakeQuery(result: QueryResult) {
   return builder;
 }
 
-export function mockSupabaseClient(fromResults: Record<string, QueryResult>) {
+export function mockSupabaseClient(fromResults: Record<string, QueryResult>, rpcResults: Record<string, QueryResult> = {}) {
   return {
     from: vi.fn((table: string) => fakeQuery(fromResults[table] ?? { data: null, error: null })),
+    rpc: vi.fn((name: string) => Promise.resolve(rpcResults[name] ?? { data: null, error: null })),
     functions: { invoke: vi.fn() },
   };
 }

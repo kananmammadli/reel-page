@@ -8,4 +8,5 @@ export * from "./database.types";
 export * from "./entitlements";
 export * from "./playback";
 export * from "./push";
+export * from "./quotes";
 export * from "./supabase-client";

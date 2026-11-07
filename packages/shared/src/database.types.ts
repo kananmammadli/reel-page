@@ -89,6 +89,13 @@ export type Database = {
             referencedRelation: "chat_messages";
             referencedColumns: ["id"];
           },
+          {
+            foreignKeyName: "chat_messages_user_id_profiles_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
         ];
       };
       club_months: {
@@ -293,6 +300,25 @@ export type Database = {
           },
         ];
       };
+      listening_days: {
+        Row: {
+          day: string;
+          seconds: number;
+          user_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          day: string;
+          seconds?: number;
+          user_id: string;
+        };
+        Update: {
+          day?: string;
+          seconds?: number;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
       payments: {
         Row: {
           amount_cents: number;
@@ -444,7 +470,103 @@ export type Database = {
             referencedRelation: "club_months";
             referencedColumns: ["id"];
           },
+          {
+            foreignKeyName: "questions_user_id_profiles_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
         ];
+      };
+      quotes: {
+        Row: {
+          at_s: number;
+          created_at: string;
+          episode_id: string;
+          id: string;
+          text: string;
+          user_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          at_s: number;
+          created_at?: string;
+          episode_id: string;
+          id?: string;
+          text: string;
+          user_id: string;
+        };
+        Update: {
+          at_s?: number;
+          created_at?: string;
+          episode_id?: string;
+          id?: string;
+          text?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "quotes_episode_id_fkey";
+            columns: ["episode_id"];
+            isOneToOne: false;
+            referencedRelation: "episodes";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      reflection_settings: {
+        Row: {
+          consented_at: string | null;
+          enabled: boolean;
+          user_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          consented_at?: string | null;
+          enabled?: boolean;
+          user_id: string;
+        };
+        Update: {
+          consented_at?: string | null;
+          enabled?: boolean;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
+      reflections: {
+        Row: {
+          created_at: string;
+          id: string;
+          main_theme: string | null;
+          quotes_count: number;
+          reflective_question: string | null;
+          total_minutes: number;
+          user_id: string;
+          week_start: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          id?: string;
+          main_theme?: string | null;
+          quotes_count: number;
+          reflective_question?: string | null;
+          total_minutes: number;
+          user_id: string;
+          week_start: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          main_theme?: string | null;
+          quotes_count?: number;
+          reflective_question?: string | null;
+          total_minutes?: number;
+          user_id?: string;
+          week_start?: string;
+        };
+        Relationships: [];
       };
       reports: {
         Row: {
@@ -478,6 +600,13 @@ export type Database = {
             columns: ["message_id"];
             isOneToOne: false;
             referencedRelation: "chat_messages";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "reports_reporter_id_profiles_fkey";
+            columns: ["reporter_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
             referencedColumns: ["id"];
           },
         ];
@@ -561,6 +690,10 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      increment_listening_seconds: {
+        Args: { p_day: string; p_seconds: number };
+        Returns: undefined;
+      };
       is_host: { Args: Record<PropertyKey, never>; Returns: boolean };
       notify_club_releases: { Args: Record<PropertyKey, never>; Returns: undefined };
     };

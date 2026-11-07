@@ -13,7 +13,8 @@
     "test": "turbo run test",
     "seed:audio": "node supabase/seed/generate-audio.mjs",
     "test:webhooks": "node supabase/functions/test-webhooks.mjs",
-    "test:entitlements": "node supabase/functions/test-entitlement-gate.mjs"
+    "test:entitlements": "node supabase/functions/test-entitlement-gate.mjs",
+    "test:reflection": "node supabase/functions/test-weekly-reflection.mjs"
   },
   "devDependencies": {
     "turbo": "^2.3.0",
