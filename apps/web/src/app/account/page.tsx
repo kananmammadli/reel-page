@@ -1,9 +1,17 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { getContinueListening, getOwnedClubMonths, getOwnedCollections, getOwnedTitles } from "@reel-and-page/shared";
+import {
+  getContinueListening,
+  getOwnedClubMonths,
+  getOwnedCollections,
+  getOwnedTitles,
+  getReflectionSettings,
+  getReflections,
+} from "@reel-and-page/shared";
 import { createClient } from "@/lib/supabase/server";
 import { PosterCard } from "@/components/catalog/PosterCard";
 import { SignOutButton } from "@/components/auth/SignOutButton";
+import { ReflectionSettings } from "@/components/quotes/ReflectionSettings";
 import styles from "@/app/page.module.css";
 
 export const dynamic = "force-dynamic";
@@ -13,11 +21,13 @@ export default async function AccountPage() {
   const { data: userData } = await supabase.auth.getUser();
   if (!userData.user) redirect("/auth/sign-in");
 
-  const [continueListening, ownedTitles, ownedCollections, ownedClubMonths] = await Promise.all([
+  const [continueListening, ownedTitles, ownedCollections, ownedClubMonths, reflectionSettings, reflections] = await Promise.all([
     getContinueListening(supabase, 50),
     getOwnedTitles(supabase, userData.user.id),
     getOwnedCollections(supabase, userData.user.id),
     getOwnedClubMonths(supabase, userData.user.id),
+    getReflectionSettings(supabase, userData.user.id),
+    getReflections(supabase, userData.user.id),
   ]);
 
   return (
@@ -64,6 +74,11 @@ export default async function AccountPage() {
           </div>
         </section>
       )}
+
+      <section>
+        <h2 className={styles.sectionTitle}>Reflection</h2>
+        <ReflectionSettings userId={userData.user.id} initialEnabled={reflectionSettings?.enabled ?? false} reflections={reflections} />
+      </section>
 
       <section>
         <h2 className={styles.sectionTitle}>Continue listening</h2>

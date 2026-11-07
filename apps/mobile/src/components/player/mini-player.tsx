@@ -1,8 +1,11 @@
+import { useEffect, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
+import { getActiveTranscriptEntry, saveQuote } from "@reel-and-page/shared";
 
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Spacing } from "@/constants/theme";
+import { supabase } from "@/lib/supabase";
 import { usePlayer } from "./player-provider";
 
 function formatTime(seconds: number): string {
@@ -27,9 +30,30 @@ export function MiniPlayer() {
     close,
   } = usePlayer();
 
+  const [userId, setUserId] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? null));
+    const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => setUserId(session?.user?.id ?? null));
+    return () => subscription.subscription.unsubscribe();
+  }, []);
+
   if (!current) return null;
 
   const progress = duration > 0 ? currentTime / duration : 0;
+  const activeLine = getActiveTranscriptEntry(current.episode.transcript, currentTime);
+
+  async function saveCurrentQuote() {
+    if (!userId || !activeLine) return;
+    try {
+      await saveQuote(supabase, { userId, episodeId: current!.episode.id, text: activeLine.text, atS: activeLine.start_s });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 1500);
+    } catch {
+      // Best-effort -- the pen button isn't worth a visible error state for one failed save.
+    }
+  }
 
   return (
     <ThemedView type="backgroundElement" style={styles.bar}>
@@ -51,6 +75,11 @@ export function MiniPlayer() {
         )}
       </View>
       <View style={styles.controls}>
+        {userId && (
+          <Pressable style={styles.iconBtn} onPress={saveCurrentQuote} disabled={!activeLine} accessibilityLabel="Save this line as a quote">
+            <ThemedText type="small">{saved ? "✓" : "✎"}</ThemedText>
+          </Pressable>
+        )}
         <Pressable style={styles.iconBtn} onPress={() => skip(-15)} accessibilityLabel="Back 15 seconds">
           <ThemedText type="small">−15</ThemedText>
         </Pressable>

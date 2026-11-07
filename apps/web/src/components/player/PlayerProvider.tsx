@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import {
+  addListeningSeconds,
   getAudioUrl,
   upsertPlaybackPosition,
   type AudioVariant,
@@ -190,13 +191,24 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     return () => clearTimeout(handle);
   }, [sleepTimer]);
 
+  const syncListeningTime = useCallback(() => {
+    const uid = userIdRef.current;
+    const track = currentRef.current;
+    if (!uid || !track || track.variant !== "full") return;
+    const today = new Date().toISOString().slice(0, 10);
+    addListeningSeconds(supabase, today, POSITION_SYNC_INTERVAL_MS / 1000).catch(() => {
+      // Best-effort: a missed tick just slightly undercounts today's minutes.
+    });
+  }, []);
+
   useEffect(() => {
     if (!playing) return;
     const handle = setInterval(() => {
       if (audioRef.current) syncPosition(audioRef.current.currentTime);
+      syncListeningTime();
     }, POSITION_SYNC_INTERVAL_MS);
     return () => clearInterval(handle);
-  }, [playing, syncPosition]);
+  }, [playing, syncPosition, syncListeningTime]);
 
   const close = useCallback(() => {
     const audio = audioRef.current;

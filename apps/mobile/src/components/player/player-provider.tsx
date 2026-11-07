@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState, ty
 import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
 import type { AudioStatus } from "expo-audio";
 import {
+  addListeningSeconds,
   getAudioUrl,
   upsertPlaybackPosition,
   type AudioVariant,
@@ -107,11 +108,24 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     return () => subscription.remove();
   }, [player, syncPosition]);
 
+  const syncListeningTime = useCallback(() => {
+    const uid = userIdRef.current;
+    const track = currentRef.current;
+    if (!uid || !track || track.variant !== "full") return;
+    const today = new Date().toISOString().slice(0, 10);
+    addListeningSeconds(supabase, today, POSITION_SYNC_INTERVAL_MS / 1000).catch(() => {
+      // Best-effort: a missed tick just slightly undercounts today's minutes.
+    });
+  }, []);
+
   useEffect(() => {
     if (!status.playing) return;
-    const handle = setInterval(() => syncPosition(player.currentTime), POSITION_SYNC_INTERVAL_MS);
+    const handle = setInterval(() => {
+      syncPosition(player.currentTime);
+      syncListeningTime();
+    }, POSITION_SYNC_INTERVAL_MS);
     return () => clearInterval(handle);
-  }, [status.playing, player, syncPosition]);
+  }, [status.playing, player, syncPosition, syncListeningTime]);
 
   useEffect(() => {
     if (typeof sleepTimer !== "number" || sleepTimer === 0) return;

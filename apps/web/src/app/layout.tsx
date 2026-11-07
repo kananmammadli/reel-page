@@ -45,6 +45,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
             </Link>
             <Link href="/catalog">Catalog</Link>
             <Link href="/club">Club</Link>
+            {userData.user && <Link href="/quotes">Quotes</Link>}
             {host && <Link href="/admin">Admin</Link>}
             <Link href={userData.user ? "/account" : "/auth/sign-in"} style={{ marginLeft: "auto" }}>
               {userData.user ? "Profile" : "Sign in"}

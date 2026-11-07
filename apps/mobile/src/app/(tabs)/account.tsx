@@ -8,12 +8,16 @@ import {
   getOwnedClubMonths,
   getOwnedCollections,
   getOwnedTitles,
+  getReflectionSettings,
+  getReflections,
   requestOtp,
+  setReflectionEnabled,
   signOut,
   verifyOtp,
   type ClubMonthWithTitle,
   type Collection,
   type ContinueListeningItem,
+  type Reflection,
   type Title,
 } from "@reel-and-page/shared";
 
@@ -39,6 +43,9 @@ export default function AccountScreen() {
   const [pushEnabled, setPushEnabled] = useState(false);
   const [pushBusy, setPushBusy] = useState(false);
   const [pushMessage, setPushMessage] = useState<string | null>(null);
+  const [reflectionEnabled, setReflectionEnabledState] = useState(false);
+  const [reflectionBusy, setReflectionBusy] = useState(false);
+  const [reflections, setReflections] = useState<Reflection[]>([]);
 
   const [step, setStep] = useState<"email" | "code">("email");
   const [email, setEmail] = useState("");
@@ -64,15 +71,32 @@ export default function AccountScreen() {
         setOwnedTitles([]);
         setOwnedCollections([]);
         setOwnedClubMonths([]);
+        setReflectionEnabledState(false);
+        setReflections([]);
         return;
       }
       setLibrary(await getContinueListening(supabase, 50));
       setOwnedTitles(await getOwnedTitles(supabase, user.id));
       setOwnedCollections(await getOwnedCollections(supabase, user.id));
       setOwnedClubMonths(await getOwnedClubMonths(supabase, user.id));
+      const settings = await getReflectionSettings(supabase, user.id);
+      setReflectionEnabledState(settings?.enabled ?? false);
+      setReflections(await getReflections(supabase, user.id));
     }
     run();
   }, [user]);
+
+  async function handleReflectionToggle(value: boolean) {
+    if (!user) return;
+    setReflectionBusy(true);
+    try {
+      await setReflectionEnabled(supabase, user.id, value);
+      setReflectionEnabledState(value);
+      if (!value) setReflections([]);
+    } finally {
+      setReflectionBusy(false);
+    }
+  }
 
   async function handlePushToggle(value: boolean) {
     setPushMessage(null);
@@ -221,6 +245,30 @@ export default function AccountScreen() {
           </ThemedText>
         )}
 
+        <ThemedText type="small" themeColor="textSecondary">
+          Weekly, Reel &amp; Page can look for a recurring theme in your saved quotes and suggest one reflective question, with your listening
+          time and quotes saved for the week. This is a prompt for reflection, not therapy or professional advice.
+        </ThemedText>
+        <View style={styles.row}>
+          <ThemedText style={styles.flex1}>Weekly reflection</ThemedText>
+          <Switch value={reflectionEnabled} onValueChange={handleReflectionToggle} disabled={reflectionBusy} />
+        </View>
+        {!reflectionEnabled && reflections.length === 0 && (
+          <ThemedText type="small" themeColor="textSecondary">
+            Turning this off deletes any saved reflections.
+          </ThemedText>
+        )}
+        {reflectionEnabled &&
+          reflections.map((r) => (
+            <View key={r.id} style={[styles.message, { backgroundColor: theme.backgroundElement }]}>
+              <ThemedText type="small" themeColor="textSecondary">
+                Week of {r.week_start} · {r.quotes_count} quotes · {r.total_minutes} min
+              </ThemedText>
+              {r.main_theme && <ThemedText type="small">Theme: {r.main_theme}</ThemedText>}
+              {r.reflective_question && <ThemedText type="small">{r.reflective_question}</ThemedText>}
+            </View>
+          ))}
+
         {ownedClubMonths.length > 0 && (
           <>
             <ThemedText type="smallBold" style={styles.sectionTitle}>
@@ -317,6 +365,11 @@ export default function AccountScreen() {
 }
 
 const styles = StyleSheet.create({
+  message: {
+    borderRadius: 8,
+    padding: Spacing.two,
+    gap: Spacing.half,
+  },
   row: {
     flexDirection: "row",
     alignItems: "center",

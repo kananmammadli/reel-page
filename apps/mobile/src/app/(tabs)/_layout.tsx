@@ -28,6 +28,11 @@ export default function TabsLayout() {
         <NativeTabs.Trigger.Icon sf="bubble.left.and.bubble.right.fill" md="forum" />
       </NativeTabs.Trigger>
 
+      <NativeTabs.Trigger name="quotes">
+        <NativeTabs.Trigger.Label>Quotes</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf="quote.opening" md="format_quote" />
+      </NativeTabs.Trigger>
+
       <NativeTabs.Trigger name="account">
         <NativeTabs.Trigger.Label>Profile</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon sf="person.crop.circle" md="person" />

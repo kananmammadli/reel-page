@@ -1,7 +1,12 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { getActiveTranscriptEntry, saveQuote } from "@reel-and-page/shared";
+import { createClient } from "@/lib/supabase/client";
 import { usePlayer } from "./PlayerProvider";
 import styles from "./MiniPlayer.module.css";
+
+const supabase = createClient();
 
 function formatTime(seconds: number): string {
   const s = Math.max(0, Math.floor(seconds));
@@ -26,7 +31,29 @@ export function MiniPlayer() {
     close,
   } = usePlayer();
 
+  const [userId, setUserId] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? null));
+    const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => setUserId(session?.user?.id ?? null));
+    return () => subscription.subscription.unsubscribe();
+  }, []);
+
   if (!current) return null;
+
+  const activeLine = getActiveTranscriptEntry(current.episode.transcript, currentTime);
+
+  async function saveCurrentQuote() {
+    if (!userId || !activeLine) return;
+    try {
+      await saveQuote(supabase, { userId, episodeId: current!.episode.id, text: activeLine.text, atS: activeLine.start_s });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 1500);
+    } catch {
+      // Best-effort -- the pen button isn't worth a visible error state for one failed save.
+    }
+  }
 
   return (
     <div className={styles.bar}>
@@ -37,6 +64,11 @@ export function MiniPlayer() {
           {current.variant === "preview" ? " · preview" : ""}
         </span>
       </div>
+      {userId && (
+        <button className={styles.btn} onClick={saveCurrentQuote} disabled={!activeLine} aria-label="Save this line as a quote" title={activeLine?.text}>
+          {saved ? "✓" : "✎"}
+        </button>
+      )}
       <button className={styles.btn} onClick={() => skip(-15)} aria-label="Back 15 seconds">
         −15
       </button>
