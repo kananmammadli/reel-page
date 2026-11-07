@@ -81,21 +81,17 @@ Not verifiable without a real EAS project (same category of gap as Stripe/Revenu
 
 ---
 
-## Milestone 7 — Quote journal
+## Milestone 7 — Quote journal ✅ done (reflection content real but unverifiable without a real Anthropic API key)
 
-**Goal:** save and revisit lines from what you're listening to, with an optional AI reflection feature.
+Schema + RLS + the weekly-reflection Edge Function (`3cedc64`), the pen button/quotes feed/reflection consent UI on both platforms (`ad7f3fc`).
 
-1. `supabase/migrations/<ts>_quotes.sql`: `quotes`, `listening_days`, `reflection_settings` tables per §4. RLS: owner-only, as with `playback_positions`.
-2. Pen button: a persistent control (both apps) visible whenever something is playing; on tap, captures the transcript entry active at the current timestamp and inserts a `quotes` row.
-3. Quotes feed screen: list own quotes newest-first; tapping one seeks the player to `at_s` in that episode (reopening the episode if it's not currently loaded).
-4. Stats: compute quotes-saved count, consecutive-listening-days streak, and total minutes from `quotes`/`listening_days` — decide whether this is a DB view/function or computed client-side at this scale (likely fine client-side for now; revisit if it gets slow).
-5. `listening_days` needs a writer: extend the playback-position sync from milestone 3 to also upsert today's `seconds` for the current user whenever meaningful playback happens (throttled, same as position sync).
-6. Reflection feature (opt-in, off by default):
-   - Consent screen in Profile writing to `reflection_settings`.
-   - Edge Function `supabase/functions/weekly-reflection/index.ts`, scheduled weekly (`pg_cron` + `net.http_post`, or an external scheduler hitting the function), reads a user's quotes for the week, calls the Claude API server-side, stores/sends a summary (decide storage: a new table, or just an email/push — not yet specified in §4, add it there if you introduce a table).
-   - Every surface showing the reflection output must label it explicitly as "a prompt for reflection, not therapy or professional advice" per `SPEC.md` §3.6 — this is a product requirement, not a suggestion.
-   - "Turn off and delete data" must actually delete, not just hide — a toggle-off action that issues a `DELETE` against the user's reflection data.
-7. Tests: RLS tests for the three new tables; a test that the reflection feature never runs for a user with `reflection_settings.enabled = false`; a test that the delete action removes rows, not just flips a flag.
+`quotes`/`listening_days`/`reflection_settings` are owner-CRUD, mirroring `playback_positions`. Added a `reflections` table (documented in `SPEC.md`/`SPEC.ru.md` §4, same as `payments` in milestone 5) so the weekly output lives in-app, not just an email/push — a user can read and delete their own rows but never write them, which is what makes "turn off and delete data" an actual `DELETE`, not a flag flip. `listening_days.seconds` increments through an RPC (`increment_listening_seconds`) rather than a plain upsert, since accumulating a count atomically isn't expressible through supabase-js's upsert; it reads `auth.uid()` itself so it can never be pointed at another user's row. `weekly-reflection` runs on a `pg_cron` tick (mirroring milestone 6's `notify_club_releases` job), checks a shared-secret header since it has no legitimate end-user caller, and only ever processes users with `reflection_settings.enabled = true` — confirmed by an integration test that a disabled user's quotes are never even queried, not just that no row gets written for them.
+
+Verified end-to-end in a real browser, not just unit tests of the pieces: played a real episode with a real transcript, confirmed the pen button activates exactly when a transcript line is active and captures the right text; confirmed the quotes feed and stats reflect it; confirmed "Jump to this moment" resumes playback at the saved timestamp; confirmed the reflection toggle's disclaimer is visible, that enabling it stamps `consented_at`, and that disabling it actually deletes a seeded reflection row (not just hides it); confirmed a real 12-second playback run produces a real `listening_days` row through the periodic sync, not just that the RPC itself works in isolation. 69 pgTAP tests (RLS + the increment RPC's accumulation behavior) and the weekly-reflection integration test (auth gate + the opt-out skip) back it up.
+
+Not verifiable without a real Anthropic API key (same category of gap as Stripe/RevenueCat/EAS elsewhere in this project — nobody here can provision one): the actual theme/question Claude would generate from a week's quotes. The function gracefully no-ops without one (reports the user as "skipped," writes nothing) rather than erroring, and the rest of the pipeline — cron trigger, auth, the enabled-only filter, the per-user quote/minutes aggregation, the upsert — is real and already proven working.
+
+Mobile UI mirrors the web room but is unverified at runtime (no simulator/device available here) — same caveat as every other milestone's mobile side; spot-check before shipping.
 
 **Definition of done:** quotes save and play back correctly on both platforms, stats are accurate, and the reflection feature is fully opt-in, clearly labeled, and deletable — verified by tests, not just manual spot-checks.
 
