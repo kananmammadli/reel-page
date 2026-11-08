@@ -25,6 +25,7 @@
 }
 
 .poster {
+  width: 100%;
   aspect-ratio: 2 / 3;
   border-radius: 8px;
   padding: 10px;
@@ -32,6 +33,7 @@
   flex-direction: column;
   justify-content: space-between;
   color: #fff8f2;
+  object-fit: cover;
 }
 
 .posterLabel {

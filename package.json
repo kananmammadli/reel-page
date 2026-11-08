@@ -12,6 +12,7 @@
     "type-check": "turbo run type-check",
     "test": "turbo run test",
     "seed:audio": "node supabase/seed/generate-audio.mjs",
+    "seed:posters": "node supabase/seed/upload-posters.mjs",
     "fix:local-grants": "sh supabase/fix-local-grants.sh",
     "test:webhooks": "node supabase/functions/test-webhooks.mjs",
     "test:entitlements": "node supabase/functions/test-entitlement-gate.mjs",
