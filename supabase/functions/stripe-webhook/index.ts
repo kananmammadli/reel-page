@@ -107,6 +107,11 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Best-effort first-party analytics (SPEC.md §5) -- never fails the webhook.
+    await supabase
+      .from("analytics_events")
+      .insert({ event_type: "purchase", user_id: userId, title_id: kind === "title" ? refId : null, metadata: { kind, refId } });
+
     return jsonResponse({ received: true });
   }
 
@@ -154,6 +159,7 @@ Deno.serve(async (req) => {
             { user_id: userId, kind: "club_month", ref_id: clubMonthId, source: "stripe", external_id: invoice.id },
             { onConflict: "source,external_id", ignoreDuplicates: true },
           );
+          await supabase.from("analytics_events").insert({ event_type: "club_join", user_id: userId, metadata: { clubMonthId } });
         }
 
         await supabase.from("payments").upsert(

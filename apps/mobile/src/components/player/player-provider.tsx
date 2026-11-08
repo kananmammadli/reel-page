@@ -4,6 +4,7 @@ import type { AudioStatus } from "expo-audio";
 import {
   addListeningSeconds,
   getAudioUrl,
+  trackEvent,
   upsertPlaybackPosition,
   type AudioVariant,
   type Episode,
@@ -99,6 +100,17 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       if (status.didJustFinish) {
         setDidJustFinish(true);
         if (sleepTimerRef.current === "end") setSleepTimer(0);
+        const track = currentRef.current;
+        if (track?.variant === "preview") {
+          trackEvent(supabase, {
+            eventType: "preview_completed",
+            userId: userIdRef.current,
+            titleId: track.title.id,
+            metadata: { episodeId: track.episode.id },
+          }).catch(() => {
+            // Best-effort -- a missed analytics event isn't worth surfacing to the listener.
+          });
+        }
       }
       if (wasPlayingRef.current && !status.playing) {
         syncPosition(status.currentTime);
@@ -155,6 +167,11 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         if (resumeAt) await player.seekTo(resumeAt);
         player.play();
         player.setActiveForLockScreen(true, { title: episode.name, artist: title.title });
+        trackEvent(supabase, { eventType: "play", userId: userIdRef.current, titleId: title.id, metadata: { episodeId: episode.id, variant } }).catch(
+          () => {
+            // Best-effort -- a missed analytics event isn't worth surfacing to the listener.
+          },
+        );
       } catch (err) {
         setError(err instanceof Error ? err.message : "Could not play this episode");
       } finally {

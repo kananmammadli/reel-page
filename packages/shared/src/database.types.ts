@@ -23,6 +23,42 @@ export type Database = {
   };
   public: {
     Tables: {
+      analytics_events: {
+        Row: {
+          created_at: string;
+          event_type: string;
+          id: string;
+          metadata: Json | null;
+          title_id: string | null;
+          user_id: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          event_type: string;
+          id?: string;
+          metadata?: Json | null;
+          title_id?: string | null;
+          user_id?: string | null;
+        };
+        Update: {
+          created_at?: string;
+          event_type?: string;
+          id?: string;
+          metadata?: Json | null;
+          title_id?: string | null;
+          user_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "analytics_events_title_id_fkey";
+            columns: ["title_id"];
+            isOneToOne: false;
+            referencedRelation: "titles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       blocks: {
         Row: {
           blocked_user_id: string;

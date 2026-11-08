@@ -127,6 +127,13 @@ Deno.serve(async (req) => {
     );
     if (error) return jsonResponse({ error: error.message }, 500);
     await recordPayment(productRef.kind, productRef.refId);
+    // Best-effort first-party analytics (SPEC.md §5) -- never fails the webhook.
+    await supabase.from("analytics_events").insert({
+      event_type: "purchase",
+      user_id: userId,
+      title_id: productRef.kind === "title" ? productRef.refId : null,
+      metadata: { kind: productRef.kind, refId: productRef.refId },
+    });
     return jsonResponse({ received: true });
   }
 
@@ -143,6 +150,7 @@ Deno.serve(async (req) => {
           { user_id: userId, kind: "club_month", ref_id: clubMonthId, source, external_id: event.transaction_id },
           { onConflict: "source,external_id", ignoreDuplicates: true },
         );
+        await supabase.from("analytics_events").insert({ event_type: "club_join", user_id: userId, metadata: { clubMonthId } });
       }
       await recordPayment("club_month", clubMonthId);
     }

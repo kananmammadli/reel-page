@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState } f
 import {
   addListeningSeconds,
   getAudioUrl,
+  trackEvent,
   upsertPlaybackPosition,
   type AudioVariant,
   type Episode,
@@ -103,6 +104,17 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       setPlaying(false);
       setDidJustFinish(true);
       if (sleepTimerRef.current === "end") setSleepTimer(0);
+      const track = currentRef.current;
+      if (track?.variant === "preview") {
+        trackEvent(supabase, {
+          eventType: "preview_completed",
+          userId: userIdRef.current,
+          titleId: track.title.id,
+          metadata: { episodeId: track.episode.id },
+        }).catch(() => {
+          // Best-effort -- a missed analytics event isn't worth surfacing to the listener.
+        });
+      }
     };
     audio.addEventListener("timeupdate", onTime);
     audio.addEventListener("loadedmetadata", onLoaded);
@@ -141,6 +153,11 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
         setCurrentTime(resumeAt ?? 0);
         if (resumeAt) audio.currentTime = resumeAt;
         await audio.play();
+        trackEvent(supabase, { eventType: "play", userId: userIdRef.current, titleId: title.id, metadata: { episodeId: episode.id, variant } }).catch(
+          () => {
+            // Best-effort -- a missed analytics event isn't worth surfacing to the listener.
+          },
+        );
       } catch (err) {
         setError(err instanceof Error ? err.message : "Could not play this episode");
       } finally {
