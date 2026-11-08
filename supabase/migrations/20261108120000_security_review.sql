@@ -1,0 +1,26 @@
+-- Milestone 8 security review finding: this database's default
+-- privileges grant EXECUTE on every new function directly to
+-- anon/authenticated/service_role (see each function's proacl). That
+-- left `notify_club_releases()` -- a SECURITY DEFINER function with
+-- real side effects (it sends real push notifications and marks
+-- releases as notified) -- callable by a completely anonymous client
+-- via PostgREST's RPC endpoint (POST /rest/v1/rpc/notify_club_releases),
+-- confirmed with a live unauthenticated curl request returning 204
+-- before this fix and a 401 "permission denied" after it. Nothing in
+-- this app calls it directly; only the pg_cron job does, which runs as
+-- the job owner (a superuser, unaffected by this revoke), so the
+-- legitimate path is unaffected.
+--
+-- Local-dev note: the Supabase CLI's `db reset`/`start` re-exposes new
+-- public-schema functions to PUBLIC after migrations apply (a local
+-- convenience so you don't need manual grants while iterating), which
+-- silently undoes the `anon, authenticated` revoke below in this local
+-- environment specifically -- confirmed by re-running
+-- `revoke execute on function public.notify_club_releases() from public;`
+-- by hand after a reset, which then stuck for good. Revoking from
+-- `public` here too doesn't fix the local symptom (the CLI's step runs
+-- after migrations, not before), but it's what a real deployment
+-- (`supabase db push` against a hosted project, with no such
+-- convenience layer) needs, so both revokes stay in the migration; a
+-- local verification needs that one extra manual command after reset.
+revoke execute on function public.notify_club_releases() from anon, authenticated, public;

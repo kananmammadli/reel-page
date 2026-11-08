@@ -102,6 +102,28 @@ async function main() {
       const rows = await adminRequest(`/rest/v1/entitlements?select=id&external_id=eq.${sessionId}`);
       assert(rows.length === 1, "a retried delivery does not create a duplicate entitlement (idempotent)");
     }
+    {
+      // Two deliveries racing concurrently (not just sequentially retried)
+      // -- a real possibility if a provider's own retry fires before the
+      // first attempt's response lands. The unique(source, external_id)
+      // constraint plus ignoreDuplicates is what has to hold here, not
+      // just "check then insert" application logic, which would have a
+      // race window a sequential test can't catch.
+      const concurrentSessionId = `cs_test_concurrent_${randomUUID()}`;
+      const concurrentPayload = JSON.stringify({
+        id: "evt_test_concurrent",
+        type: "checkout.session.completed",
+        data: { object: { id: concurrentSessionId, mode: "payment", client_reference_id: userId, metadata: { kind: "title", ref_id: titleId } } },
+      });
+      const signature = sign(STRIPE_WEBHOOK_SECRET, concurrentPayload);
+      const [a, b] = await Promise.all([
+        callFunction("stripe-webhook", concurrentPayload, { "stripe-signature": signature }),
+        callFunction("stripe-webhook", concurrentPayload, { "stripe-signature": signature }),
+      ]);
+      assert(a.status === 200 && b.status === 200, `both concurrent deliveries returned 200 (got ${a.status}, ${b.status})`);
+      const rows = await adminRequest(`/rest/v1/entitlements?select=id&external_id=eq.${concurrentSessionId}`);
+      assert(rows.length === 1, "two concurrent identical deliveries still produce exactly one entitlement (no race)");
+    }
 
     console.log("=== RevenueCat webhook ===");
     {
@@ -125,6 +147,17 @@ async function main() {
       const rows = await adminRequest(`/rest/v1/entitlements?select=*&external_id=eq.${txnId}`);
       assert(rows.length === 1, "writes exactly one entitlement row");
       assert(rows[0]?.source === "apple" && rows[0]?.kind === "title" && rows[0]?.ref_id === titleId, "entitlement row has the right source/kind/ref_id");
+    }
+    {
+      // Retried delivery (same transaction id) must not double-grant --
+      // RevenueCat explicitly documents that it retries undelivered
+      // webhooks, so this is a real scenario, not a hypothetical.
+      const { status } = await callFunction("revenuecat-webhook", rcPayload, {
+        "X-RevenueCat-Webhook-Signature": sign(REVENUECAT_WEBHOOK_SECRET, rcPayload),
+      });
+      assert(status === 200, "a retried delivery still returns 200");
+      const rows = await adminRequest(`/rest/v1/entitlements?select=id&external_id=eq.${txnId}`);
+      assert(rows.length === 1, "a retried delivery does not create a duplicate entitlement (idempotent)");
     }
   } finally {
     await adminRequest(`/auth/v1/admin/users/${userId}`, { method: "DELETE" }); // cascades entitlements/subscriptions/profile
