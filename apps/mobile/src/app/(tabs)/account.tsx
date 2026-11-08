@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { router } from "expo-router";
-import { FlatList, Pressable, StyleSheet, Switch, TextInput, View } from "react-native";
+import { Alert, FlatList, Linking, Pressable, StyleSheet, Switch, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import type { User } from "@supabase/supabase-js";
 import {
+  deleteAccount,
   getContinueListening,
   getOwnedClubMonths,
   getOwnedCollections,
@@ -160,6 +161,29 @@ export default function AccountScreen() {
   async function handleSignOut() {
     await signOut(supabase);
   }
+
+  function handleDeleteAccount() {
+    Alert.alert(
+      "Delete account?",
+      "This permanently removes your purchases, quotes, and club history. This cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await deleteAccount(supabase);
+            } catch (err) {
+              Alert.alert("Could not delete account", err instanceof Error ? err.message : "Please try again.");
+            }
+          },
+        },
+      ],
+    );
+  }
+
+  const siteUrl = process.env.EXPO_PUBLIC_SITE_URL ?? "https://reelandpage.example";
 
   if (checkingSession) return null;
 
@@ -361,6 +385,32 @@ export default function AccountScreen() {
             )}
           />
         )}
+
+        <ThemedText type="smallBold" style={styles.sectionTitle}>
+          Support
+        </ThemedText>
+        <View style={styles.row}>
+          <Pressable onPress={() => Linking.openURL("mailto:support@reelandpage.example")}>
+            <ThemedText type="small">support@reelandpage.example</ThemedText>
+          </Pressable>
+          <ThemedText type="small" themeColor="textSecondary">
+            {"  ·  "}
+          </ThemedText>
+          <Pressable onPress={() => Linking.openURL(`${siteUrl}/terms`)}>
+            <ThemedText type="small">Terms</ThemedText>
+          </Pressable>
+          <ThemedText type="small" themeColor="textSecondary">
+            {"  ·  "}
+          </ThemedText>
+          <Pressable onPress={() => Linking.openURL(`${siteUrl}/privacy`)}>
+            <ThemedText type="small">Privacy policy</ThemedText>
+          </Pressable>
+        </View>
+        <Pressable onPress={handleDeleteAccount}>
+          <ThemedText type="small" style={{ color: "#8a1f2d" }}>
+            Delete account
+          </ThemedText>
+        </Pressable>
       </SafeAreaView>
     </ThemedView>
   );

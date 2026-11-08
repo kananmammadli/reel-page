@@ -1,7 +1,7 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "./database.types";
-import { requestOtp, signOut, verifyOtp } from "./auth";
+import { deleteAccount, requestOtp, signOut, verifyOtp } from "./auth";
 import { mockAuthClient } from "./test/mock-supabase";
 
 type Client = SupabaseClient<Database>;
@@ -43,5 +43,33 @@ describe("signOut", () => {
   it("throws on error", async () => {
     const client = mockAuthClient({ signOut: { error: new Error("network") } });
     await expect(signOut(client as unknown as Client)).rejects.toThrow("network");
+  });
+});
+
+function deleteAccountClient(invokeResult: { data?: unknown; error?: unknown }) {
+  return {
+    auth: { signOut: vi.fn(() => Promise.resolve({ error: null })) },
+    functions: { invoke: vi.fn(() => Promise.resolve(invokeResult)) },
+  };
+}
+
+describe("deleteAccount", () => {
+  it("signs the client out after a successful deletion", async () => {
+    const client = deleteAccountClient({ data: { deleted: true }, error: null });
+    await deleteAccount(client as unknown as Client);
+    expect(client.functions.invoke).toHaveBeenCalledWith("delete-account", { method: "POST" });
+    expect(client.auth.signOut).toHaveBeenCalled();
+  });
+
+  it("throws on a function-invoke error and does not sign out", async () => {
+    const client = deleteAccountClient({ data: null, error: new Error("network") });
+    await expect(deleteAccount(client as unknown as Client)).rejects.toThrow("network");
+    expect(client.auth.signOut).not.toHaveBeenCalled();
+  });
+
+  it("throws on an application-level error in the response body", async () => {
+    const client = deleteAccountClient({ data: { error: "Sign in required" }, error: null });
+    await expect(deleteAccount(client as unknown as Client)).rejects.toThrow("Sign in required");
+    expect(client.auth.signOut).not.toHaveBeenCalled();
   });
 });

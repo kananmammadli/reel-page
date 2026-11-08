@@ -11,6 +11,7 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import { PosterCard } from "@/components/catalog/PosterCard";
 import { SignOutButton } from "@/components/auth/SignOutButton";
+import { DeleteAccountButton } from "@/components/auth/DeleteAccountButton";
 import { ReflectionSettings } from "@/components/quotes/ReflectionSettings";
 import styles from "@/app/page.module.css";
 
@@ -100,6 +101,24 @@ export default async function AccountPage() {
             ))}
           </div>
         )}
+      </section>
+
+      <section>
+        <h2 className={styles.sectionTitle}>Support</h2>
+        <p className={styles.empty}>
+          <a href="mailto:support@reelandpage.example" style={{ textDecoration: "underline" }}>
+            support@reelandpage.example
+          </a>
+          {" · "}
+          <Link href="/terms" style={{ textDecoration: "underline" }}>
+            Terms
+          </Link>
+          {" · "}
+          <Link href="/privacy" style={{ textDecoration: "underline" }}>
+            Privacy policy
+          </Link>
+        </p>
+        <DeleteAccountButton />
       </section>
     </div>
   );

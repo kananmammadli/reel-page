@@ -23,3 +23,15 @@ export async function signOut(client: Client): Promise<void> {
   const { error } = await client.auth.signOut();
   if (error) throw error;
 }
+
+// Required by App Store/Google Play review for any app with account
+// creation (SPEC.md §5). The Edge Function re-verifies the caller's own
+// JWT server-side and deletes exactly that account; cascading FKs on
+// every user-owned table remove the rest of their data. Signs the
+// client out locally too, since the session is for a now-deleted user.
+export async function deleteAccount(client: Client): Promise<void> {
+  const { data, error } = await client.functions.invoke("delete-account", { method: "POST" });
+  if (error) throw error;
+  if (data?.error) throw new Error(data.error);
+  await client.auth.signOut();
+}
