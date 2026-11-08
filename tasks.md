@@ -97,18 +97,24 @@ Mobile UI mirrors the web room but is unverified at runtime (no simulator/device
 
 ---
 
-## Milestone 8 — Launch prep
+## Milestone 8 — Launch prep ✅ done (beta distribution blocked — see below)
 
-**Goal:** ready for real users and app store review.
+Security review (`275dc36`), accessibility pass + real web dark theme (`cf86b0f`), account deletion + legal pages + store listing (`85766bd`), first-party analytics (`948193c`).
 
-1. Store listings: screenshots, descriptions, privacy labels (App Store "App Privacy" questionnaire must match what's actually collected — audit against `SPEC.md` §5 before filling it in).
-2. Legal: privacy policy and terms of service pages (web, linked from both apps' Profile screens).
-3. Beta distribution: TestFlight build via EAS Build + EAS Submit; Play internal testing track.
-4. Security review focused on the two things `CLAUDE.md` calls out as revenue/privacy-critical:
-   - Re-walk every RLS policy written across milestones 2–7 against the "owner-only unless explicitly shared" rule.
-   - Re-walk the entitlement-check path end to end: confirm there is no code path that serves full audio without a server-side entitlement check immediately before issuing the signed URL.
-5. Load-test or at least sanity-check the webhook endpoints (Stripe/RevenueCat) for idempotency — a retried webhook delivery must not double-grant or corrupt an entitlement.
-6. Final pass on accessibility (dynamic text size, screen-reader labels, contrast in both themes) across both apps, since this was a running requirement (§5) rather than a milestone-8-only task — use this milestone as the checkpoint to verify it was actually done.
-7. Trademark/name check for "Reel & Page" (§7 open decision) — resolve before public listing.
+**Security:** re-walked every RLS policy from milestones 2–7 against "owner-only unless explicitly shared," and the entitlement-check path end to end. Found a real hole: `notify_club_releases()` had no explicit `REVOKE`, so Postgres's default privileges left it `EXECUTE`-able by `anon`/`authenticated` — confirmed live (an unauthenticated call returned 204, not 401) before fixing it, then confirmed the fix (204 → 401) plus a pgTAP regression test (`function_privs_are`). Also hardened webhook idempotency tests to cover genuine concurrency (`Promise.all` of two identical signed deliveries), not just sequential retries. (Local-dev-only caveat documented in the migration: the Supabase CLI's `db reset`/`start` re-grants new functions to `PUBLIC` as a convenience, undoing the `REVOKE` until `pnpm fix:local-grants` runs — doesn't affect a real `db push` deploy.)
 
-**Definition of done:** both app store submissions are in review (or approved), legal pages are live, the security review's findings are either fixed or explicitly accepted as known risk by Liliya, and webhook idempotency is verified with a test (send the same event twice, assert only one entitlement).
+**Accessibility:** computed real WCAG 2.1 AA contrast ratios rather than eyeballing; added missing `aria-label`/`accessibilityLabel` to several chat/search/code inputs on both platforms, deleted an unused contrast-failing `linkPrimary` color on mobile, and — since the web app had no dark theme at all despite the OS-level `prefers-color-scheme` already working correctly on mobile via `Colors.light/dark` — added one for real: CSS custom properties in `globals.css` with a `prefers-color-scheme: dark` override block, applied across every `.module.css` file. Verified in a real headless browser (Puppeteer/CDP) with `emulateMediaFeatures` forcing dark mode, not just by reading the CSS.
+
+**Account deletion:** a `delete-account` Edge Function (service role); cascading FKs from every user-owned table to `auth.users(id)` do the actual cleanup. Wired into both account screens alongside Support/Terms/Privacy links.
+
+**Legal pages:** Russian-language privacy policy and terms of service drafts at `/privacy` and `/terms`, linked from both apps — **drafts only, bracketed placeholders where real legal-entity facts are needed; not a substitute for real legal review**, which remains Liliya's to commission.
+
+**Store listing:** `store-listing.md` — description, keywords, and a full App Privacy/Data Safety data-type audit against what `SPEC.md` §5 actually collects, plus the store-policy-feature checklist. Real screenshots still need a built app in a simulator/device, which this environment doesn't have.
+
+**Trademark/name check:** a web-search sanity check for "Reel & Page" / "Reel and Page" turned up no existing app, podcast, or USPTO trademark with that exact name (plenty of unrelated "Reel"-prefixed apps, as expected for a common word) — **this is not a real USPTO/Rospatent registry search**, just a check that nothing obvious collides. A real clearance search is still Liliya's call before public listing.
+
+**Analytics:** added the `analytics_events` table SPEC.md §5 already called for (first-party, RLS write-your-own/host-reads-only, matching this project's standing policy of first-party-over-third-party-SDK) and instrumented all four required events — `play`/`preview_completed` fire client-side from both players' `play()`/`onEnded` handlers, `purchase`/`club_join` fire server-side from inside the Stripe and RevenueCat webhooks right after the entitlement grant that backs them. Verified end-to-end against the real local stack, not just unit tests: 78 pgTAP tests, 79 vitest tests, and the webhook integration suite re-run with a direct query confirming real `purchase` rows landed in the table.
+
+**Blocked, same category as every other external-account gap in this project (nobody here can provision the credential):** TestFlight (EAS Build + EAS Submit) and Google Play internal testing both need real Apple Developer Program / Google Play Console accounts. The code and config for both are otherwise in place; this is a distribution-account gap, not a code gap.
+
+**Definition of done:** security findings fixed and tested, legal pages live (as drafts pending real legal review), store listing content and privacy audit ready for screenshots, webhook idempotency verified under both retry and concurrency, accessibility verified with computed contrast ratios and a real dark theme — all true. App store submissions themselves are not in review, blocked on distribution accounts as noted above.
