@@ -34,7 +34,7 @@ export function ReflectionSettings({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-      <p style={{ color: "#6f6268", fontSize: "0.9rem" }}>
+      <p style={{ color: "var(--muted)", fontSize: "0.9rem" }}>
         Weekly, Reel &amp; Page can look for a recurring theme in the lines you&rsquo;ve saved and suggest one reflective question, with your
         listening time and quotes saved for the week. <strong>This is a prompt for reflection, not therapy or professional advice.</strong>
       </p>
@@ -43,15 +43,15 @@ export function ReflectionSettings({
         Enable weekly reflection
       </label>
       {!enabled && reflections.length > 0 && (
-        <p style={{ color: "#6f6268", fontSize: "0.85rem" }}>Turning this off deleted your saved reflections.</p>
+        <p style={{ color: "var(--muted)", fontSize: "0.85rem" }}>Turning this off deleted your saved reflections.</p>
       )}
-      {error && <p style={{ color: "#8a1f2d" }}>{error}</p>}
+      {error && <p style={{ color: "var(--brand)" }}>{error}</p>}
 
       {enabled && reflections.length > 0 && (
         <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 6 }}>
           {reflections.map((r) => (
-            <div key={r.id} style={{ border: "1px solid #e4dbd8", borderRadius: 8, padding: 12 }}>
-              <div style={{ color: "#6f6268", fontSize: "0.8rem" }}>
+            <div key={r.id} style={{ border: "1px solid var(--border)", borderRadius: 8, padding: 12 }}>
+              <div style={{ color: "var(--muted)", fontSize: "0.8rem" }}>
                 Week of {r.week_start} · {r.quotes_count} quotes · {r.total_minutes} min
               </div>
               {r.main_theme && <div style={{ marginTop: 4 }}>Theme: {r.main_theme}</div>}

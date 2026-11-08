@@ -36,7 +36,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
               display: "flex",
               gap: 16,
               padding: "14px 20px",
-              borderBottom: "1px solid #e4dbd8",
+              borderBottom: "1px solid var(--border)",
               alignItems: "center",
             }}
           >

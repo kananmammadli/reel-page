@@ -265,6 +265,7 @@ export function ClubRoom({
                     value={chatText}
                     onChange={(e) => setChatText(e.target.value)}
                     placeholder="Say something…"
+                    aria-label="Chat message"
                     onKeyDown={(e) => e.key === "Enter" && sendMessage()}
                   />
                   <button className={styles.btn} onClick={sendMessage} disabled={!chatText.trim()}>
@@ -298,7 +299,13 @@ export function ClubRoom({
 
             {userId && isCurrentMonth && (
               <div className={styles.composer}>
-                <input type="text" value={questionText} onChange={(e) => setQuestionText(e.target.value)} placeholder="Ask the host something…" />
+                <input
+                  type="text"
+                  value={questionText}
+                  onChange={(e) => setQuestionText(e.target.value)}
+                  placeholder="Ask the host something…"
+                  aria-label="Question for the host"
+                />
                 <button className={styles.btn} onClick={askQuestion} disabled={!questionText.trim()}>
                   Ask
                 </button>

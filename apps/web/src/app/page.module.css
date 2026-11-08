@@ -49,10 +49,10 @@
 .cap {
   margin-top: 6px;
   font-size: 0.85rem;
-  color: #6f6268;
+  color: var(--muted);
 }
 
 .empty {
-  color: #6f6268;
+  color: var(--muted);
   font-size: 0.9rem;
 }

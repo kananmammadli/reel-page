@@ -53,6 +53,7 @@ export default function CatalogScreen() {
           onChangeText={setQuery}
           placeholder="Search films, stories, directors"
           placeholderTextColor={theme.textSecondary}
+          accessibilityLabel="Search films, stories, directors"
           style={[styles.search, { borderColor: theme.backgroundSelected, color: theme.text }]}
         />
         <View style={styles.chips}>

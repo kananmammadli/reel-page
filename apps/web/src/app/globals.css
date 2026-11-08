@@ -1,12 +1,32 @@
 :root {
-  --background: #ffffff;
+  --background: #fffaf6;
   --foreground: #171717;
+  --brand: #8a1f2d;
+  --brand-text: #fffaf6;
+  --muted: #6f6268;
+  --border: #e4dbd8;
+  --card-bg: #f3ece9;
+  --nav-bg: transparent;
 }
 
+/* Every contrast pair below (brand/muted/border against --background, and
+   --brand-text against --brand) was checked against WCAG AA (4.5:1 for
+   text, 3:1 for UI/non-text) -- see the milestone-8 security/accessibility
+   review in tasks.md for the actual numbers. */
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
+    --background: #15120f;
     --foreground: #ededed;
+    --brand: #e8536a;
+    --brand-text: #fffaf6;
+    --muted: #b6adaa;
+    --border: #4a4340;
+    --card-bg: #241f1d;
+    --nav-bg: #1c1917;
+  }
+
+  html {
+    color-scheme: dark;
   }
 }
 
@@ -40,10 +60,4 @@ body {
 a {
   color: inherit;
   text-decoration: none;
-}
-
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
-  }
 }

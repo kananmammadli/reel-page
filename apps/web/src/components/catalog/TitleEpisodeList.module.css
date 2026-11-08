@@ -15,7 +15,7 @@
 }
 
 .muted {
-  color: #6f6268;
+  color: var(--muted);
 }
 
 .cta {
@@ -27,8 +27,8 @@
 }
 
 .btn {
-  background: #8a1f2d;
-  color: #fffaf6;
+  background: var(--brand);
+  color: var(--brand-text);
   border: 0;
   border-radius: 999px;
   padding: 10px 18px;
@@ -38,8 +38,8 @@
 
 .btn.ghost {
   background: none;
-  color: #241a1f;
-  border: 1px solid #e4dbd8;
+  color: var(--foreground);
+  border: 1px solid var(--border);
 }
 
 .parts {
@@ -55,8 +55,8 @@
   grid-template-columns: 30px 1fr auto;
   gap: 10px;
   align-items: center;
-  background: #fffdfb;
-  border: 1px solid #e4dbd8;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
   border-radius: 10px;
   padding: 10px 12px;
   text-align: left;
@@ -69,15 +69,15 @@
 }
 
 .n {
-  color: #a5762a;
+  color: var(--muted);
   font-size: 0.8rem;
 }
 
 .buybox {
   max-width: 600px;
   margin: 16px auto 0;
-  background: #fffdfb;
-  border: 1px solid #e4dbd8;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
   border-radius: 12px;
   padding: 14px;
   display: grid;

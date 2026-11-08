@@ -8,15 +8,15 @@
   font-size: 0.7rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #6f6268;
+  color: var(--muted);
 }
 
 .transcript p {
   margin: 0;
-  color: #6f6268;
+  color: var(--muted);
   transition: color 0.3s;
 }
 
 .active {
-  color: #241a1f;
+  color: var(--foreground);
 }

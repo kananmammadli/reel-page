@@ -312,6 +312,7 @@ export default function ClubScreen() {
                         onChangeText={setReportReason}
                         placeholder="Why are you reporting this?"
                         placeholderTextColor={theme.textSecondary}
+                        accessibilityLabel="Report reason"
                         style={[styles.input, { borderColor: theme.backgroundSelected, color: theme.text, flex: 1 }]}
                       />
                       <Pressable onPress={submitReport}>
@@ -329,6 +330,7 @@ export default function ClubScreen() {
                     onChangeText={setChatText}
                     placeholder="Say something…"
                     placeholderTextColor={theme.textSecondary}
+                    accessibilityLabel="Chat message"
                     style={[styles.input, { borderColor: theme.backgroundSelected, color: theme.text }]}
                   />
                   <Pressable style={styles.btn} onPress={sendMessage} disabled={!chatText.trim()}>
@@ -363,6 +365,7 @@ export default function ClubScreen() {
                     onChangeText={setQuestionText}
                     placeholder="Ask the host something…"
                     placeholderTextColor={theme.textSecondary}
+                    accessibilityLabel="Question for the host"
                     style={[styles.input, { borderColor: theme.backgroundSelected, color: theme.text }]}
                   />
                   <Pressable style={styles.btn} onPress={askQuestion} disabled={!questionText.trim()}>

@@ -183,6 +183,7 @@ export default function AccountScreen() {
                 placeholderTextColor={theme.textSecondary}
                 keyboardType="email-address"
                 autoCapitalize="none"
+                accessibilityLabel="Email address"
                 style={[styles.input, { borderColor: theme.backgroundSelected, color: theme.text }]}
               />
               <Pressable style={styles.btn} onPress={handleRequestCode} disabled={loading}>
@@ -198,6 +199,7 @@ export default function AccountScreen() {
                 placeholder="123456"
                 placeholderTextColor={theme.textSecondary}
                 keyboardType="number-pad"
+                accessibilityLabel="Verification code"
                 style={[styles.input, { borderColor: theme.backgroundSelected, color: theme.text }]}
               />
               <Pressable style={styles.btn} onPress={handleVerifyCode} disabled={loading}>

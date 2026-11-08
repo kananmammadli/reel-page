@@ -120,7 +120,7 @@ export function TitleEpisodeList({
               className={styles.part}
               disabled={access === "locked"}
               onClick={() => playEpisode(episode, access)}
-              style={isPlaying ? { borderColor: "#8a1f2d" } : undefined}
+              style={isPlaying ? { borderColor: "var(--brand)" } : undefined}
             >
               <span className={styles.n}>{String(i + 1).padStart(2, "0")}</span>
               <span>{isPlaying ? "▶ " : ""}{episode.name}</span>
@@ -145,7 +145,7 @@ export function TitleEpisodeList({
             {buying ? "Starting checkout…" : "Buy to unlock"}
           </button>
           {buyError && (
-            <span className={styles.muted} style={{ fontSize: "0.82rem", color: "#8a1f2d" }}>
+            <span className={styles.muted} style={{ fontSize: "0.82rem", color: "var(--brand)" }}>
               {buyError}
             </span>
           )}

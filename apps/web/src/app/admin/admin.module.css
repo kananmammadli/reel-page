@@ -10,18 +10,18 @@
   display: flex;
   gap: 16px;
   padding: 10px 20px;
-  background: #f3ece9;
+  background: var(--card-bg);
   font-size: 0.9rem;
 }
 
 .nav a {
-  color: #4a3f42;
+  color: var(--foreground);
 }
 
 .card {
   display: block;
   padding: 16px;
-  border: 1px solid #e4dbd8;
+  border: 1px solid var(--border);
   border-radius: 10px;
   text-decoration: none;
   color: inherit;
@@ -38,7 +38,7 @@
   align-items: center;
   gap: 12px;
   padding: 10px 14px;
-  border: 1px solid #e4dbd8;
+  border: 1px solid var(--border);
   border-radius: 8px;
   text-decoration: none;
   color: inherit;
@@ -50,7 +50,7 @@
   border-radius: 4px;
   flex: none;
   object-fit: cover;
-  background: #e4dbd8;
+  background: var(--border);
 }
 
 .rowMain {
@@ -59,7 +59,7 @@
 }
 
 .rowMeta {
-  color: #6f6268;
+  color: var(--muted);
   font-size: 0.85rem;
 }
 
@@ -67,8 +67,8 @@
   font-size: 0.75rem;
   padding: 2px 8px;
   border-radius: 999px;
-  background: #e4dbd8;
-  color: #4a3f42;
+  background: var(--border);
+  color: var(--foreground);
 }
 
 .badgeLive {
@@ -90,7 +90,7 @@
 
 .field label {
   font-size: 0.85rem;
-  color: #6f6268;
+  color: var(--muted);
 }
 
 .field input[type="text"],
@@ -99,7 +99,7 @@
 .field textarea,
 .field select {
   padding: 8px 10px;
-  border: 1px solid #e4dbd8;
+  border: 1px solid var(--border);
   border-radius: 6px;
   font: inherit;
 }
@@ -117,8 +117,8 @@
 }
 
 .button {
-  background: #8a1f2d;
-  color: #fffaf6;
+  background: var(--brand);
+  color: var(--brand-text);
   border: none;
   border-radius: 999px;
   padding: 10px 20px;
@@ -133,7 +133,7 @@
 
 .ghostButton {
   background: transparent;
-  border: 1px solid #e4dbd8;
+  border: 1px solid var(--border);
   border-radius: 999px;
   padding: 10px 20px;
   cursor: pointer;
@@ -141,20 +141,20 @@
 
 .dangerButton {
   background: transparent;
-  color: #8a1f2d;
-  border: 1px solid #8a1f2d;
+  color: var(--brand);
+  border: 1px solid var(--brand);
   border-radius: 999px;
   padding: 10px 20px;
   cursor: pointer;
 }
 
 .error {
-  color: #8a1f2d;
+  color: var(--brand);
   font-size: 0.9rem;
 }
 
 .hint {
-  color: #6f6268;
+  color: var(--muted);
   font-size: 0.8rem;
 }
 
@@ -168,7 +168,7 @@
 .table td {
   text-align: left;
   padding: 6px 10px;
-  border-bottom: 1px solid #e4dbd8;
+  border-bottom: 1px solid var(--border);
 }
 
 .statGrid {
@@ -178,7 +178,7 @@
 }
 
 .stat {
-  border: 1px solid #e4dbd8;
+  border: 1px solid var(--border);
   border-radius: 8px;
   padding: 12px;
 }
@@ -189,6 +189,6 @@
 }
 
 .statLabel {
-  color: #6f6268;
+  color: var(--muted);
   font-size: 0.8rem;
 }

@@ -13,7 +13,7 @@
 }
 
 .stat {
-  border: 1px solid #e4dbd8;
+  border: 1px solid var(--border);
   border-radius: 8px;
   padding: 12px;
   text-align: center;
@@ -25,12 +25,12 @@
 }
 
 .statLabel {
-  color: #6f6268;
+  color: var(--muted);
   font-size: 0.8rem;
 }
 
 .quote {
-  border: 1px solid #e4dbd8;
+  border: 1px solid var(--border);
   border-radius: 8px;
   padding: 14px;
   display: flex;
@@ -43,7 +43,7 @@
 }
 
 .quoteMeta {
-  color: #6f6268;
+  color: var(--muted);
   font-size: 0.85rem;
   display: flex;
   justify-content: space-between;
@@ -54,11 +54,11 @@
   background: none;
   border: none;
   padding: 0;
-  color: #8a1f2d;
+  color: var(--brand);
   cursor: pointer;
   font-size: 0.85rem;
 }
 
 .empty {
-  color: #6f6268;
+  color: var(--muted);
 }

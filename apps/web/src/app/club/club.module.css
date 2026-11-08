@@ -29,7 +29,7 @@
   align-items: center;
   gap: 12px;
   padding: 10px 0;
-  border-bottom: 1px solid #e4dbd8;
+  border-bottom: 1px solid var(--border);
 }
 
 .episodeName {
@@ -37,7 +37,7 @@
 }
 
 .muted {
-  color: #6f6268;
+  color: var(--muted);
   font-size: 0.85rem;
 }
 
@@ -53,11 +53,11 @@
 .message {
   padding: 8px 10px;
   border-radius: 8px;
-  background: #f3ece9;
+  background: var(--card-bg);
 }
 
 .messagePinned {
-  border: 1px solid #8a1f2d;
+  border: 1px solid var(--brand);
 }
 
 .messageHead {
@@ -72,14 +72,14 @@
   font-size: 0.65rem;
   padding: 1px 6px;
   border-radius: 999px;
-  background: #8a1f2d;
-  color: #fffaf6;
+  background: var(--brand);
+  color: var(--brand-text);
 }
 
 .replyPreview {
   font-size: 0.75rem;
-  color: #6f6268;
-  border-left: 2px solid #c9bdb8;
+  color: var(--muted);
+  border-left: 2px solid var(--border);
   padding-left: 6px;
   margin-bottom: 4px;
 }
@@ -95,7 +95,7 @@
   border: none;
   padding: 0;
   font-size: 0.75rem;
-  color: #6f6268;
+  color: var(--muted);
   cursor: pointer;
   text-decoration: underline;
 }
@@ -110,14 +110,14 @@
 .composer textarea {
   flex: 1;
   padding: 8px 10px;
-  border: 1px solid #e4dbd8;
+  border: 1px solid var(--border);
   border-radius: 6px;
   font: inherit;
 }
 
 .btn {
-  background: #8a1f2d;
-  color: #fffaf6;
+  background: var(--brand);
+  color: var(--brand-text);
   border: none;
   border-radius: 999px;
   padding: 10px 20px;
@@ -132,31 +132,31 @@
 
 .ghost {
   background: transparent;
-  border: 1px solid #e4dbd8;
+  border: 1px solid var(--border);
   color: inherit;
 }
 
 .question {
   padding: 10px;
   border-radius: 8px;
-  background: #f3ece9;
+  background: var(--card-bg);
   margin-bottom: 8px;
 }
 
 .answer {
   margin-top: 6px;
   padding-top: 6px;
-  border-top: 1px solid #e4dbd8;
+  border-top: 1px solid var(--border);
 }
 
 .error {
-  color: #8a1f2d;
+  color: var(--brand);
   font-size: 0.85rem;
 }
 
 .joinBox {
   text-align: center;
   padding: 24px;
-  border: 1px dashed #e4dbd8;
+  border: 1px dashed var(--border);
   border-radius: 12px;
 }

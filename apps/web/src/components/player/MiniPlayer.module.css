@@ -9,8 +9,8 @@
   align-items: center;
   gap: 10px;
   padding: 10px 16px;
-  background: var(--card, #fffdfb);
-  border-top: 1px solid var(--line, #e4dbd8);
+  background: var(--card-bg);
+  border-top: 1px solid var(--border);
 }
 
 .info {
@@ -29,34 +29,35 @@
 
 .sub {
   font-size: 0.8rem;
-  color: var(--muted, #6f6268);
+  color: var(--muted);
 }
 
 .scrub {
   grid-column: 1 / -1;
   width: 100%;
-  accent-color: var(--accent, #8a1f2d);
+  accent-color: var(--brand);
 }
 
 .btn {
   background: none;
-  border: 1px solid var(--line, #e4dbd8);
+  border: 1px solid var(--border);
   border-radius: 999px;
   width: 36px;
   height: 36px;
   display: grid;
   place-items: center;
   cursor: pointer;
+  color: inherit;
 }
 
 .btn.main {
-  background: var(--ink, #241a1f);
-  color: var(--paper, #f7f3f1);
-  border-color: var(--ink, #241a1f);
+  background: #241a1f;
+  color: #f7f3f1;
+  border-color: #241a1f;
 }
 
 .error {
   grid-column: 1 / -1;
-  color: var(--accent, #8a1f2d);
+  color: var(--brand);
   font-size: 0.82rem;
 }
